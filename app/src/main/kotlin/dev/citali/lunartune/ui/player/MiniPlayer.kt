@@ -1,0 +1,485 @@
+/*
+ * AmaBeat (2026)
+ * © nastechresearch — github.com/nastechresearch
+ * GPL-3.0 License | Contributors: see git history
+ * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
+ */
+
+package dev.citali.amabeat.ui.player
+
+import android.os.Build
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.palette.graphics.Palette
+import coil3.imageLoader
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
+import coil3.toBitmap
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazePerformanceMode
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.blur.hazeBlur
+import dev.citali.amabeat.ui.component.FrostedFallbackAlpha
+import dev.citali.amabeat.ui.component.frostedMiniPlayerStyle
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import dev.citali.amabeat.LocalPlayerConnection
+import dev.citali.amabeat.constants.MiniPlayerBackgroundStyle
+import dev.citali.amabeat.constants.MiniPlayerBackgroundStyleKey
+import dev.citali.amabeat.constants.MiniPlayerHeight
+import dev.citali.amabeat.constants.NavigationBarMaxWidth
+import dev.citali.amabeat.constants.SwipeSensitivityKey
+import dev.citali.amabeat.ui.theme.PlayerColorExtractor
+import dev.citali.amabeat.utils.rememberEnumPreference
+import dev.citali.amabeat.utils.rememberPreference
+import kotlin.math.roundToInt
+
+private const val MiniPlayerPaletteCacheSize = 24
+
+@Composable
+fun MiniPlayer(
+    position: Long,
+    duration: Long,
+    modifier: Modifier = Modifier,
+    pureBlack: Boolean,
+    isPairedWithNavigation: Boolean = false,
+    hazeState: HazeState? = null,
+) {
+    NewMiniPlayer(
+        position = position,
+        duration = duration,
+        modifier = modifier,
+        pureBlack = pureBlack,
+        isPairedWithNavigation = isPairedWithNavigation,
+        hazeState = hazeState,
+    )
+}
+
+@Composable
+private fun NewMiniPlayer(
+    position: Long,
+    duration: Long,
+    modifier: Modifier = Modifier,
+    pureBlack: Boolean,
+    isPairedWithNavigation: Boolean,
+    hazeState: HazeState? = null,
+) {
+    val playerConnection = LocalPlayerConnection.current ?: return
+    val context = LocalContext.current
+    val layoutDirection = LocalLayoutDirection.current
+    val coroutineScope = rememberCoroutineScope()
+    val swipeSensitivity by rememberPreference(SwipeSensitivityKey, 0.73f)
+    val swipeThumbnail by rememberPreference(dev.citali.amabeat.constants.SwipeThumbnailKey, true)
+    val miniPlayerBackgroundStyle by rememberEnumPreference(
+        key = MiniPlayerBackgroundStyleKey,
+        defaultValue = MiniPlayerBackgroundStyle.THEME,
+    )
+    val mediaMetadata by playerConnection.mediaMetadata.collectAsStateWithLifecycle()
+    var gradientColors by remember {
+        mutableStateOf<List<Color>>(emptyList())
+    }
+    val gradientColorsCache =
+        remember {
+            object : LinkedHashMap<String, List<Color>>(MiniPlayerPaletteCacheSize, 0.75f, true) {
+                override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, List<Color>>?): Boolean =
+                    size > MiniPlayerPaletteCacheSize
+            }
+        }
+    val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
+    val shouldUseArtworkBackground = miniPlayerBackgroundStyle != MiniPlayerBackgroundStyle.THEME
+
+    LaunchedEffect(
+        mediaMetadata?.id,
+        mediaMetadata?.thumbnailUrl,
+        shouldUseArtworkBackground,
+        fallbackColor,
+    ) {
+        if (!shouldUseArtworkBackground) {
+            gradientColors = emptyList()
+            return@LaunchedEffect
+        }
+
+        val currentMetadata = mediaMetadata
+        val thumbnailUrl = currentMetadata?.thumbnailUrl
+        if (currentMetadata == null || thumbnailUrl.isNullOrBlank()) {
+            gradientColors = emptyList()
+            return@LaunchedEffect
+        }
+
+        val cachedColors = gradientColorsCache[currentMetadata.id]
+        if (cachedColors != null) {
+            gradientColors = cachedColors
+            return@LaunchedEffect
+        }
+
+        val request =
+            ImageRequest
+                .Builder(context)
+                .data(thumbnailUrl)
+                .size(PlayerColorExtractor.Config.IMAGE_SIZE, PlayerColorExtractor.Config.IMAGE_SIZE)
+                .allowHardware(false)
+                .build()
+
+        val extractedColors =
+            runCatching {
+                val result =
+                    withContext(Dispatchers.IO) {
+                        context.imageLoader.execute(request)
+                    }
+                val bitmap = result.image?.toBitmap() ?: return@runCatching emptyList()
+                val palette =
+                    withContext(Dispatchers.Default) {
+                        Palette
+                            .from(bitmap)
+                            .maximumColorCount(PlayerColorExtractor.Config.MAX_COLOR_COUNT)
+                            .resizeBitmapArea(PlayerColorExtractor.Config.BITMAP_AREA)
+                            .generate()
+                    }
+                PlayerColorExtractor.extractGradientColors(
+                    palette = palette,
+                    fallbackColor = fallbackColor,
+                )
+            }.getOrDefault(emptyList())
+
+        if (extractedColors.isNotEmpty()) {
+            gradientColorsCache[currentMetadata.id] = extractedColors
+        }
+        gradientColors = extractedColors
+    }
+
+    val backgroundPalette =
+        remember(gradientColors) {
+            MiniPlayerBackgroundPalette.from(gradientColors)
+        }
+    val effectiveBackgroundStyle =
+        if (shouldUseArtworkBackground && backgroundPalette != null) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S &&
+                miniPlayerBackgroundStyle == MiniPlayerBackgroundStyle.FROSTED
+            ) {
+                // No RenderEffect below 12 and RenderScript renders garbage
+                // on old GPUs — frosted glow degrades to plain glow there.
+                MiniPlayerBackgroundStyle.GLOW
+            } else {
+                miniPlayerBackgroundStyle
+            }
+        } else {
+            MiniPlayerBackgroundStyle.THEME
+        }
+
+    val contentColors =
+        rememberMiniPlayerContentColors(
+            useArtworkBackground = effectiveBackgroundStyle != MiniPlayerBackgroundStyle.THEME,
+        )
+    val miniPlayerShape =
+        remember(isPairedWithNavigation) {
+            if (isPairedWithNavigation) {
+                RoundedCornerShape(
+                    topStart = 28.dp,
+                    topEnd = 28.dp,
+                    bottomStart = 12.dp,
+                    bottomEnd = 12.dp,
+                )
+            } else {
+                null
+            }
+        } ?: MaterialTheme.shapes.extraLarge
+
+    SwipeableMiniPlayerBox(
+        modifier = modifier,
+        contentMaxWidth = if (isPairedWithNavigation) NavigationBarMaxWidth else null,
+        swipeSensitivity = swipeSensitivity,
+        swipeThumbnail = swipeThumbnail,
+        playerConnection = playerConnection,
+        layoutDirection = layoutDirection,
+        coroutineScope = coroutineScope,
+        pureBlack = pureBlack,
+        useLegacyBackground = false,
+    ) { offsetX ->
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(MiniPlayerHeight)
+                    .offset { IntOffset(offsetX.roundToInt(), 0) }
+                    .clip(miniPlayerShape),
+        ) {
+            MiniPlayerBackground(
+                style = effectiveBackgroundStyle,
+                palette = backgroundPalette,
+                modifier = Modifier.fillMaxSize(),
+                hazeState = hazeState,
+            )
+            NewMiniPlayerContent(
+                position = position,
+                duration = duration,
+                playerConnection = playerConnection,
+                colors = contentColors,
+            )
+        }
+    }
+}
+
+@Composable
+private fun rememberMiniPlayerContentColors(useArtworkBackground: Boolean): MiniPlayerContentColors {
+    val colorScheme = MaterialTheme.colorScheme
+    return remember(
+        useArtworkBackground,
+        colorScheme.primary,
+        colorScheme.onPrimary,
+        colorScheme.outline,
+        colorScheme.onSurface,
+        colorScheme.onSurfaceVariant,
+        colorScheme.surface,
+        colorScheme.surfaceContainerHighest,
+        colorScheme.surfaceVariant,
+        colorScheme.primaryContainer,
+        colorScheme.onPrimaryContainer,
+    ) {
+        if (useArtworkBackground) {
+            MiniPlayerContentColors(
+                title = Color.White,
+                secondary = Color.White.copy(alpha = 0.72f),
+                progress = Color.White,
+                progressTrack = Color.White.copy(alpha = 0.24f),
+                artworkContainer = Color.White.copy(alpha = 0.14f),
+                artworkBorder = Color.White.copy(alpha = 0.22f),
+                primaryButtonContainer = Color.White.copy(alpha = 0.92f),
+                primaryButtonIcon = Color.Black,
+                secondaryButtonContainer = Color.Black.copy(alpha = 0.22f),
+                buttonIcon = Color.White,
+                disabledButtonIcon = Color.White.copy(alpha = 0.38f),
+                togetherContainer = Color.White.copy(alpha = 0.16f),
+                togetherContent = Color.White,
+            )
+        } else {
+            MiniPlayerContentColors(
+                title = colorScheme.onSurface,
+                secondary = colorScheme.onSurfaceVariant,
+                progress = colorScheme.primary,
+                progressTrack = colorScheme.outline.copy(alpha = 0.18f),
+                artworkContainer = colorScheme.surfaceVariant,
+                artworkBorder = colorScheme.outline.copy(alpha = 0.2f),
+                primaryButtonContainer = colorScheme.primary,
+                primaryButtonIcon = colorScheme.onPrimary,
+                secondaryButtonContainer = colorScheme.surfaceContainerHighest,
+                buttonIcon = colorScheme.onSurface,
+                disabledButtonIcon = colorScheme.onSurface.copy(alpha = 0.38f),
+                togetherContainer = colorScheme.primaryContainer,
+                togetherContent = colorScheme.onPrimaryContainer,
+            )
+        }
+    }
+}
+
+@Composable
+private fun MiniPlayerBackground(
+    style: MiniPlayerBackgroundStyle,
+    palette: MiniPlayerBackgroundPalette?,
+    modifier: Modifier = Modifier,
+    hazeState: HazeState? = null,
+) {
+    when (style) {
+        MiniPlayerBackgroundStyle.THEME -> {
+            Box(
+                modifier = modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh),
+            )
+        }
+
+        MiniPlayerBackgroundStyle.GRADIENT -> {
+            val colors = requireNotNull(palette)
+            Box(modifier = modifier) {
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colorStops =
+                                        arrayOf(
+                                            0f to colors.first.copy(alpha = 0.95f),
+                                            0.52f to colors.second.copy(alpha = 0.82f),
+                                            1f to colors.third.copy(alpha = 0.72f),
+                                        ),
+                                ),
+                            ),
+                )
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.32f)),
+                )
+            }
+        }
+
+        MiniPlayerBackgroundStyle.GLOW -> {
+            MiniPlayerGlowLayer(
+                colors = requireNotNull(palette),
+                modifier = modifier,
+            )
+        }
+
+        MiniPlayerBackgroundStyle.FROSTED -> {
+            val colors = requireNotNull(palette)
+            val frostedStyle =
+                remember(hazeState) {
+                    if (hazeState != null) {
+                        frostedMiniPlayerStyle(
+                            scrim = Color.Black.copy(alpha = 0.25f),
+                            fallbackScrim = Color.Black.copy(alpha = FrostedFallbackAlpha),
+                        )
+                    } else {
+                        null
+                    }
+                }
+            Box(
+                modifier =
+                    modifier.then(
+                        if (hazeState != null && frostedStyle != null) {
+                            Modifier.hazeBlur(
+                                input = HazeInput.Sources(hazeState),
+                                style = frostedStyle,
+                                performanceMode = HazePerformanceMode.Performance,
+                            )
+                        } else {
+                            Modifier
+                        },
+                    ),
+            ) {
+                if (hazeState != null) {
+                    MiniPlayerGlowLayer(
+                        colors = colors,
+                        modifier = Modifier.fillMaxSize(),
+                        intensity = 0.75f,
+                        drawBase = false,
+                        veilAlpha = 0.32f,
+                    )
+                } else {
+                    MiniPlayerGlowLayer(
+                        colors = colors,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MiniPlayerGlowLayer(
+    colors: MiniPlayerBackgroundPalette,
+    modifier: Modifier = Modifier,
+    intensity: Float = 1f,
+    drawBase: Boolean = true,
+    veilAlpha: Float = 0.24f,
+) {
+    Box(
+        modifier =
+            modifier.drawWithCache {
+                val width = size.width
+                val height = size.height
+                val startGlow =
+                    Brush.radialGradient(
+                        colors =
+                            listOf(
+                                colors.first.copy(alpha = 0.82f * intensity),
+                                colors.first.copy(alpha = 0.38f * intensity),
+                                Color.Transparent,
+                            ),
+                        center = Offset(width * 0.12f, height * 0.42f),
+                        radius = width * 0.72f,
+                    )
+                val endGlow =
+                    Brush.radialGradient(
+                        colors =
+                            listOf(
+                                colors.second.copy(alpha = 0.78f * intensity),
+                                colors.second.copy(alpha = 0.34f * intensity),
+                                Color.Transparent,
+                            ),
+                        center = Offset(width * 0.88f, height * 0.58f),
+                        radius = width * 0.72f,
+                    )
+                val topGlow =
+                    Brush.radialGradient(
+                        colors =
+                            listOf(
+                                colors.third.copy(alpha = 0.58f * intensity),
+                                Color.Transparent,
+                            ),
+                        center = Offset(width * 0.52f, height * 0.05f),
+                        radius = width * 0.54f,
+                    )
+                val bottomGlow =
+                    Brush.radialGradient(
+                        colors =
+                            listOf(
+                                colors.fourth.copy(alpha = 0.46f * intensity),
+                                Color.Transparent,
+                            ),
+                        center = Offset(width * 0.46f, height * 1.05f),
+                        radius = width * 0.54f,
+                    )
+
+                onDrawBehind {
+                    if (drawBase) {
+                        drawRect(Color.Black)
+                    }
+                    drawRect(startGlow)
+                    drawRect(endGlow)
+                    drawRect(topGlow)
+                    drawRect(bottomGlow)
+                    drawRect(Color.Black.copy(alpha = veilAlpha))
+                }
+            },
+    )
+}
+
+@Immutable
+private data class MiniPlayerBackgroundPalette(
+    val first: Color,
+    val second: Color,
+    val third: Color,
+    val fourth: Color,
+) {
+    companion object {
+        fun from(colors: List<Color>): MiniPlayerBackgroundPalette? {
+            val first = colors.firstOrNull() ?: return null
+            val second = colors.getOrElse(1) { first }
+            val third = colors.getOrElse(2) { second }
+            val fourth = colors.getOrElse(3) { first }
+            return MiniPlayerBackgroundPalette(
+                first = first,
+                second = second,
+                third = third,
+                fourth = fourth,
+            )
+        }
+    }
+}

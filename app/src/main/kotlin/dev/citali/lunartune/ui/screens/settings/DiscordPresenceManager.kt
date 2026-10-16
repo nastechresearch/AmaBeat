@@ -1,0 +1,364 @@
+/*
+ * AmaBeat (2026)
+ * © nastechresearch — github.com/nastechresearch
+ * GPL-3.0 License | Contributors: see git history
+ * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
+ */
+
+package dev.citali.amabeat.ui.screens.settings
+
+import android.content.Context
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
+import dev.citali.amabeat.db.entities.Song
+import dev.citali.amabeat.discord.DiscordOAuthRepository
+import dev.citali.amabeat.discord.DiscordSocialPresenceClient
+import dev.citali.amabeat.utils.DiscordImageResolver
+import dev.citali.amabeat.utils.DiscordRPC
+import timber.log.Timber
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
+
+object DiscordPresenceManager {
+    private const val LOG_TAG = "DiscordPresenceManager"
+    private const val IMAGE_RESOLUTION_TIMEOUT_MS = 8_000L
+    private const val STOP_TIMEOUT_MS = 5_000L
+
+    private val started = AtomicBoolean(false)
+    private val startedState = MutableStateFlow(false)
+    val isRunningFlow = startedState.asStateFlow()
+    private val updateGeneration = AtomicLong(0L)
+    private val rpcMutex = Mutex()
+    private val cleanupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    private var scope: CoroutineScope? = null
+    private var rpcInstance: DiscordRPC? = null
+    private var rpcToken: String? = null
+
+    private var consecutiveFailures = 0
+
+    private val lastRpcStartTimeState = MutableStateFlow<Long?>(null)
+    val lastRpcStartTimeFlow = lastRpcStartTimeState.asStateFlow()
+    val lastRpcStartTime: Long? get() = lastRpcStartTimeState.value
+
+    private val lastRpcEndTimeState = MutableStateFlow<Long?>(null)
+    val lastRpcEndTimeFlow = lastRpcEndTimeState.asStateFlow()
+    val lastRpcEndTime: Long? get() = lastRpcEndTimeState.value
+
+    fun setLastRpcTimestamps(
+        start: Long?,
+        end: Long?,
+    ) {
+        lastRpcStartTimeState.value = start
+        lastRpcEndTimeState.value = end
+    }
+
+    private suspend fun getOrCreateRpc(
+        context: Context,
+        token: String,
+    ): DiscordRPC {
+        val activeToken = DiscordOAuthRepository.getValidAccessToken(context) ?: token
+        if (rpcInstance == null || rpcToken != activeToken) {
+            val previous = rpcInstance
+            if (previous != null) {
+                // The previous token may already be revoked (log-out, re-login), so it is only
+                // used to clear over a socket that is still open, never to open a new one.
+                if (DiscordSocialPresenceClient.isStarted) {
+                    runCatching { previous.stopActivity() }
+                        .onFailure { Timber.tag(LOG_TAG).v(it, "failed to stop previous activity") }
+                }
+                runCatching { previous.closeRPC() }
+                    .onFailure { Timber.tag(LOG_TAG).v(it, "failed to close previous RPC instance") }
+            }
+
+            rpcInstance = DiscordRPC(context.applicationContext, activeToken)
+            rpcToken = activeToken
+        }
+        return rpcInstance ?: error("Discord RPC instance was not created")
+    }
+
+    suspend fun updatePresence(
+        context: Context,
+        token: String,
+        song: Song?,
+        positionMs: Long,
+        isPaused: Boolean,
+        isMusicVideo: Boolean = false,
+    ): Boolean =
+        updatePresence(
+            context = context,
+            token = token,
+            song = song,
+            positionMs = positionMs,
+            isPaused = isPaused,
+            isMusicVideo = isMusicVideo,
+            generation = updateGeneration.incrementAndGet(),
+        )
+
+    suspend fun clearNow(
+        context: Context,
+        token: String? = null,
+    ): Boolean =
+        withContext(Dispatchers.IO) {
+            val appContext = context.applicationContext
+            rpcMutex.withLock {
+                try {
+                    Timber.tag(LOG_TAG).d(
+                        "clearNow tokenProvided=%s hasRpcInstance=%s",
+                        !token.isNullOrBlank(),
+                        rpcInstance != null,
+                    )
+                    clearPresenceLocked(appContext, token)
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Exception) {
+                    Timber.tag(LOG_TAG).e(error, "clearNow failed")
+                    false
+                }
+            }
+        }
+
+    private suspend fun updatePresence(
+        context: Context,
+        token: String,
+        song: Song?,
+        positionMs: Long,
+        isPaused: Boolean,
+        isMusicVideo: Boolean = false,
+        generation: Long,
+    ): Boolean =
+        withContext(Dispatchers.IO) {
+            val appContext = context.applicationContext
+            rpcMutex.withLock {
+                if (generation != updateGeneration.get()) {
+                    Timber.tag(LOG_TAG).d("skipped stale presence update")
+                    return@withLock true
+                }
+
+                try {
+                    val activeToken = DiscordOAuthRepository.getValidAccessToken(appContext) ?: token
+                    if (activeToken.isBlank()) {
+                        Timber.tag(LOG_TAG).w("updatePresence skipped because token is missing")
+                        return@withLock false
+                    }
+
+                    if (song == null) {
+                        val rpc = getOrCreateRpc(appContext, activeToken)
+                        rpc.stopActivity()
+                        setLastRpcTimestamps(null, null)
+                        consecutiveFailures = 0
+                        Timber.tag(LOG_TAG).d("cleared presence because no song is active")
+                        return@withLock true
+                    }
+
+                    runCatching {
+                        withTimeout(IMAGE_RESOLUTION_TIMEOUT_MS) {
+                            DiscordImageResolver.resolveImagesForSong(appContext, song, isMusicVideo)
+                        }
+                    }.onFailure {
+                        Timber.tag(LOG_TAG).e(it, "image resolution for presence failed or timed out")
+                    }
+
+                    if (generation != updateGeneration.get()) {
+                        Timber.tag(LOG_TAG).d("skipped stale presence update after image resolution")
+                        return@withLock true
+                    }
+
+                    val rpc = getOrCreateRpc(appContext, activeToken)
+                    val result =
+                        rpc.updateSong(
+                            song = song,
+                            currentPlaybackTimeMillis = positionMs,
+                            isPaused = isPaused,
+                        )
+                    if (result.isSuccess) {
+                        consecutiveFailures = 0
+                        updateLastTimestamps(song = song, positionMs = positionMs, isPaused = isPaused)
+                        Timber.tag(LOG_TAG).d("updated presence song=%s paused=%s", song.song.title, isPaused)
+                        true
+                    } else {
+                        consecutiveFailures++
+                        Timber.tag(LOG_TAG).w(
+                            "updatePresence returned failure consecutive=%d",
+                            consecutiveFailures,
+                        )
+                        false
+                    }
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Exception) {
+                    consecutiveFailures++
+                    Timber.tag(LOG_TAG).e(error, "updatePresence failed consecutive=%d", consecutiveFailures)
+                    false
+                }
+            }
+        }
+
+    fun start(
+        context: Context,
+        token: String,
+    ) {
+        if (!started.getAndSet(true)) {
+            consecutiveFailures = 0
+            scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+            startedState.value = true
+        }
+
+        if (token.isNotBlank() && token != rpcToken) {
+            // A session with a different token than the live instance was built with: that
+            // instance must not be reused (its token is most likely revoked). It is closed and
+            // the next update or clear connects with the current token.
+            val stale = rpcInstance
+            rpcInstance = null
+            rpcToken = null
+            if (stale != null) {
+                Timber.tag(LOG_TAG).d("start: dropping RPC instance built with a previous token")
+                cleanupScope.launch {
+                    rpcMutex.withLock {
+                        runCatching { withTimeout(STOP_TIMEOUT_MS) { stale.closeRPC() } }
+                            .onFailure { Timber.tag(LOG_TAG).v(it, "stale instance close failed or timed out") }
+                    }
+                }
+            }
+        }
+        Timber.tag(LOG_TAG).d("started manager runtime; awaiting external sync trigger")
+    }
+
+    suspend fun updateNow(
+        context: Context,
+        token: String,
+        song: Song?,
+        positionMs: Long,
+        isPaused: Boolean,
+        isMusicVideo: Boolean = false,
+    ): Boolean =
+        updatePresence(
+            context = context,
+            token = token,
+            song = song,
+            positionMs = positionMs,
+            isPaused = isPaused,
+            isMusicVideo = isMusicVideo,
+        )
+
+    fun setOnTransportInvalidated(listener: ((String) -> Unit)?) {
+        DiscordSocialPresenceClient.setOnTransportInvalidated(listener)
+    }
+
+    private suspend fun clearPresenceLocked(
+        context: Context,
+        token: String? = null,
+    ): Boolean {
+        val activeToken = DiscordOAuthRepository.getValidAccessToken(context) ?: token.orEmpty()
+        val existingRpc = rpcInstance
+
+        if (existingRpc != null && activeToken.isBlank()) {
+            // Logged out. The instance's token is revoked, so it must never dial the gateway
+            // again — that is what produced a 4004 "Authentication failed" on every clear.
+            // One empty presence still goes over the socket if it is open, then it is closed;
+            // a presence whose session is gone is dropped by Discord on its own.
+            Timber.tag(LOG_TAG).d("clearPresenceLocked closing RPC instance after log-out")
+            if (DiscordSocialPresenceClient.isStarted) {
+                DiscordSocialPresenceClient.clearPresence().onFailure {
+                    Timber.tag(LOG_TAG).v(it, "final clear over the open socket failed")
+                }
+            }
+            runCatching { existingRpc.closeRPC() }
+                .onFailure { Timber.tag(LOG_TAG).v(it, "failed to close RPC instance after log-out") }
+            rpcInstance = null
+            rpcToken = null
+            setLastRpcTimestamps(null, null)
+            consecutiveFailures = 0
+            return true
+        }
+
+        if (existingRpc != null && rpcToken == activeToken) {
+            Timber.tag(LOG_TAG).d("clearPresenceLocked using existing RPC instance")
+            existingRpc.stopActivity()
+            setLastRpcTimestamps(null, null)
+            consecutiveFailures = 0
+            return true
+        }
+
+        if (activeToken.isBlank()) {
+            Timber.tag(LOG_TAG).w("clearPresenceLocked skipped because token is missing")
+            return false
+        }
+
+        // No instance, or one built with a token that is no longer current (re-login):
+        // getOrCreateRpc closes the stale one and connects with the current token.
+        Timber.tag(LOG_TAG).d("clearPresenceLocked creating RPC instance for clear")
+        val rpc = getOrCreateRpc(context, activeToken)
+        rpc.stopActivity()
+        setLastRpcTimestamps(null, null)
+        consecutiveFailures = 0
+        return true
+    }
+
+    fun stop(clearActivity: Boolean = true) {
+        if (!started.getAndSet(false)) return
+        startedState.value = false
+
+        DiscordSocialPresenceClient.setOnTransportInvalidated(null)
+        updateGeneration.incrementAndGet()
+        scope?.cancel()
+        scope = null
+
+        val rpcToClose = rpcInstance
+        rpcInstance = null
+        rpcToken = null
+        setLastRpcTimestamps(null, null)
+
+        if (rpcToClose != null) {
+            cleanupScope.launch {
+                rpcMutex.withLock {
+                    runCatching {
+                        withTimeout(STOP_TIMEOUT_MS) {
+                            // Clearing is only worth a send over a socket that is still open;
+                            // reconnecting for it would fail outright once the token is revoked.
+                            if (clearActivity && DiscordSocialPresenceClient.isStarted) {
+                                rpcToClose.stopActivity()
+                            }
+                            rpcToClose.closeRPC()
+                        }
+                    }.onFailure {
+                        Timber.tag(LOG_TAG).v(it, "stop cleanup failed or timed out")
+                    }
+                }
+            }
+        }
+
+        Timber.tag(LOG_TAG).d("stopped")
+    }
+
+    fun isRunning(): Boolean = started.get()
+
+    private fun updateLastTimestamps(
+        song: Song,
+        positionMs: Long,
+        isPaused: Boolean,
+    ) {
+        val durationMs =
+            song.song.duration
+                .takeIf { it > 0 }
+                ?.toLong()
+                ?.times(1000L)
+        if (isPaused || durationMs == null) {
+            setLastRpcTimestamps(null, null)
+            return
+        }
+
+        val startMs = System.currentTimeMillis() - positionMs.coerceAtLeast(0L)
+        setLastRpcTimestamps(startMs, startMs + durationMs)
+    }
+}

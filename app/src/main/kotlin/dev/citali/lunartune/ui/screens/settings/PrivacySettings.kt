@@ -1,0 +1,280 @@
+/*
+ * AmaBeat (2026)
+ * © nastechresearch — github.com/nastechresearch
+ * GPL-3.0 License | Contributors: see git history
+ * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
+ */
+
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
+package dev.citali.amabeat.ui.screens.settings
+
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import dev.citali.amabeat.LocalDatabase
+import dev.citali.amabeat.LocalPlayerAwareWindowInsets
+import dev.citali.amabeat.R
+import dev.citali.amabeat.constants.AppLockEnabledKey
+import dev.citali.amabeat.constants.AppLockPinHashKey
+import dev.citali.amabeat.constants.AppLockType
+import dev.citali.amabeat.constants.AppLockTypeKey
+import dev.citali.amabeat.constants.DisableScreenshotKey
+import dev.citali.amabeat.constants.EnableHapticFeedbackKey
+import dev.citali.amabeat.constants.PauseListenHistoryKey
+import dev.citali.amabeat.constants.PauseSearchHistoryKey
+import dev.citali.amabeat.ui.component.DefaultDialog
+import dev.citali.amabeat.ui.component.IconButton
+import dev.citali.amabeat.ui.component.PreferenceEntry
+import dev.citali.amabeat.ui.component.PreferenceGroup
+import dev.citali.amabeat.ui.component.SwitchPreference
+import dev.citali.amabeat.ui.utils.backToMain
+import dev.citali.amabeat.utils.rememberEnumPreference
+import dev.citali.amabeat.utils.rememberPreference
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PrivacySettings(navController: NavController) {
+    val database = LocalDatabase.current
+    val (pauseListenHistory, onPauseListenHistoryChange) =
+        rememberPreference(
+            key = PauseListenHistoryKey,
+            defaultValue = false,
+        )
+    val (pauseSearchHistory, onPauseSearchHistoryChange) =
+        rememberPreference(
+            key = PauseSearchHistoryKey,
+            defaultValue = false,
+        )
+    val (disableScreenshot, onDisableScreenshotChange) =
+        rememberPreference(
+            key = DisableScreenshotKey,
+            defaultValue = false,
+        )
+    val (enableHapticFeedback, onEnableHapticFeedbackChange) =
+        rememberPreference(
+            key = EnableHapticFeedbackKey,
+            defaultValue = true,
+        )
+    val (appLockEnabled) = rememberPreference(AppLockEnabledKey, defaultValue = false)
+    val (appLockType) = rememberEnumPreference(AppLockTypeKey, defaultValue = AppLockType.NONE)
+    val (appLockPinHash) = rememberPreference(AppLockPinHashKey, defaultValue = "")
+
+    val appLockConfigured =
+        appLockEnabled &&
+            (appLockType == AppLockType.BIOMETRIC || (appLockType == AppLockType.PIN && appLockPinHash.isNotBlank()))
+
+    val appLockSummary =
+        when {
+            !appLockEnabled -> stringResource(R.string.no_lock)
+            appLockType == AppLockType.BIOMETRIC -> stringResource(R.string.same_as_screen_lock)
+            appLockType == AppLockType.PIN && appLockPinHash.isNotBlank() -> stringResource(R.string.custom_pin)
+            else -> stringResource(R.string.no_lock)
+        }
+
+    var showClearListenHistoryDialog by remember {
+        mutableStateOf(false)
+    }
+
+    if (showClearListenHistoryDialog) {
+        DefaultDialog(
+            onDismiss = { showClearListenHistoryDialog = false },
+            content = {
+                Text(
+                    text = stringResource(R.string.clear_listen_history_confirm),
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(horizontal = 18.dp),
+                )
+            },
+            buttons = {
+                TextButton(
+                    onClick = { showClearListenHistoryDialog = false },
+                    shapes = ButtonDefaults.shapes(),
+                ) {
+                    Text(text = stringResource(android.R.string.cancel))
+                }
+
+                TextButton(
+                    onClick = {
+                        showClearListenHistoryDialog = false
+                        database.query {
+                            clearListenHistory()
+                        }
+                    },
+                    shapes = ButtonDefaults.shapes(),
+                ) {
+                    Text(text = stringResource(android.R.string.ok))
+                }
+            },
+        )
+    }
+
+    var showClearSearchHistoryDialog by remember {
+        mutableStateOf(false)
+    }
+
+    if (showClearSearchHistoryDialog) {
+        DefaultDialog(
+            onDismiss = { showClearSearchHistoryDialog = false },
+            content = {
+                Text(
+                    text = stringResource(R.string.clear_search_history_confirm),
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(horizontal = 18.dp),
+                )
+            },
+            buttons = {
+                TextButton(
+                    onClick = { showClearSearchHistoryDialog = false },
+                    shapes = ButtonDefaults.shapes(),
+                ) {
+                    Text(text = stringResource(android.R.string.cancel))
+                }
+
+                TextButton(
+                    onClick = {
+                        showClearSearchHistoryDialog = false
+                        database.query {
+                            clearSearchHistory()
+                        }
+                    },
+                    shapes = ButtonDefaults.shapes(),
+                ) {
+                    Text(text = stringResource(android.R.string.ok))
+                }
+            },
+        )
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.settings_behavior_title)) },
+                navigationIcon = {
+                    IconButton(
+                        onClick = navController::navigateUp,
+                        onLongClick = navController::backToMain,
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.arrow_back),
+                            contentDescription = null,
+                        )
+                    }
+                },
+            )
+        },
+    ) { innerPadding ->
+        val topPadding = innerPadding.calculateTopPadding()
+
+        Column(
+            Modifier
+                .padding(top = topPadding)
+                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = SettingsDimensions.ScreenBottomPadding),
+        ) {
+            PreferenceGroup(title = stringResource(R.string.security)) {
+                item {
+                    PreferenceEntry(
+                        title = { Text(stringResource(R.string.app_lock)) },
+                        description = appLockSummary,
+                        icon = { Icon(painterResource(R.drawable.lock), null) },
+                        onClick = { navController.navigate("settings/app_lock") },
+                    )
+                }
+            }
+
+            PreferenceGroup(title = stringResource(R.string.listen_history)) {
+                item {
+                    SwitchPreference(
+                        title = { Text(stringResource(R.string.pause_listen_history)) },
+                        icon = { Icon(painterResource(R.drawable.history), null) },
+                        checked = pauseListenHistory,
+                        onCheckedChange = onPauseListenHistoryChange,
+                    )
+                }
+
+                item {
+                    PreferenceEntry(
+                        title = { Text(stringResource(R.string.clear_listen_history)) },
+                        icon = { Icon(painterResource(R.drawable.delete_history), null) },
+                        onClick = { showClearListenHistoryDialog = true },
+                    )
+                }
+            }
+
+            PreferenceGroup(title = stringResource(R.string.search_history)) {
+                item {
+                    SwitchPreference(
+                        title = { Text(stringResource(R.string.pause_search_history)) },
+                        icon = { Icon(painterResource(R.drawable.search_off), null) },
+                        checked = pauseSearchHistory,
+                        onCheckedChange = onPauseSearchHistoryChange,
+                    )
+                }
+
+                item {
+                    PreferenceEntry(
+                        title = { Text(stringResource(R.string.clear_search_history)) },
+                        icon = { Icon(painterResource(R.drawable.clear_all), null) },
+                        onClick = { showClearSearchHistoryDialog = true },
+                    )
+                }
+            }
+
+            PreferenceGroup(title = stringResource(R.string.misc)) {
+                item {
+                    SwitchPreference(
+                        title = { Text(stringResource(R.string.haptics)) },
+                        description = stringResource(R.string.haptics_desc),
+                        icon = { Icon(painterResource(R.drawable.vibration), null) },
+                        checked = enableHapticFeedback,
+                        onCheckedChange = onEnableHapticFeedbackChange,
+                    )
+                }
+
+                item {
+                    // An app lock keeps the secure flag on: otherwise Recents would keep
+                    // a thumbnail of what the lock is there to hide. The switch shows the
+                    // forced state and stays put until the lock is removed.
+                    SwitchPreference(
+                        title = { Text(stringResource(R.string.disable_screenshot)) },
+                        description =
+                            if (appLockConfigured) {
+                                stringResource(R.string.disable_screenshot_locked_desc)
+                            } else {
+                                stringResource(R.string.disable_screenshot_desc)
+                            },
+                        icon = { Icon(painterResource(R.drawable.screenshot), null) },
+                        checked = disableScreenshot || appLockConfigured,
+                        onCheckedChange = onDisableScreenshotChange,
+                        isEnabled = !appLockConfigured,
+                    )
+                }
+            }
+        }
+    }
+}

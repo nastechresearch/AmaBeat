@@ -1,0 +1,49 @@
+# AmaBeat startup profile.
+#
+# Startup profiles are consumed directly by R8 for DEX layout. Unlike baseline
+# profiles, this input does not pass through AGP's wildcard-expansion task, so every
+# class and method rule here must be concrete.
+
+# Application and activity lifecycle
+Ldev/citali/amabeat/App;
+Ldev/citali/amabeat/MainActivity;
+HSPLdev/citali/amabeat/MainActivity;->onCreate(Landroid/os/Bundle;)V
+HSPLdev/citali/amabeat/MainActivity;->onStart()V
+HSPLdev/citali/amabeat/MainActivity;->onResume()V
+Ldev/citali/amabeat/AnimationPreferencesKt;
+
+# First Compose tree, theme, and navigation
+Ldev/citali/amabeat/ui/theme/ThemeKt;
+Ldev/citali/amabeat/ui/screens/NavigationBuilderKt;
+Ldev/citali/amabeat/ui/screens/HomeScreenKt;
+Ldev/citali/amabeat/ui/screens/SearchScreenKt;
+Ldev/citali/amabeat/ui/screens/Screens;
+Ldev/citali/amabeat/ui/screens/library/LibraryScreenKt;
+
+# Startup view models and repositories
+Ldev/citali/amabeat/viewmodels/HomeViewModel;
+Ldev/citali/amabeat/viewmodels/LibraryViewModel;
+Ldev/citali/amabeat/home/HomeRepository;
+Ldev/citali/amabeat/home/ObserveHomePresentationPreferencesUseCase;
+Ldev/citali/amabeat/home/LoadPersonalizedQuickPicksUseCase;
+Ldev/citali/amabeat/library/ObserveLibraryTopMixesUseCase;
+
+# Navigation chrome and restored mini-player
+Ldev/citali/amabeat/ui/component/CapsuleNavigationBarKt;
+Ldev/citali/amabeat/ui/component/FloatingNavigationToolbarKt;
+Ldev/citali/amabeat/ui/player/MiniPlayerKt;
+Ldev/citali/amabeat/ui/player/MiniPlayerComponentsKt;
+# Constructed on the first composition regardless of the toggle, and reset()
+# fires from the route LaunchedEffect in the same frame. The anonymous
+# NestedScrollConnection is deliberately absent: its generated inner-class name
+# is not stable enough to pin, and this file admits no wildcards.
+Ldev/citali/amabeat/NavBarScrollTracker;
+HSPLdev/citali/amabeat/NavBarScrollTracker;-><init>(F)V
+HSPLdev/citali/amabeat/NavBarScrollTracker;->reset()V
+
+# Database and playback state touched while restoring the session
+Ldev/citali/amabeat/playback/PlayerConnection;
+Ldev/citali/amabeat/models/PersistPlayerState;
+Ldev/citali/amabeat/models/PersistQueue;
+Ldev/citali/amabeat/db/MusicDatabase;
+Ldev/citali/amabeat/db/InternalDatabase;

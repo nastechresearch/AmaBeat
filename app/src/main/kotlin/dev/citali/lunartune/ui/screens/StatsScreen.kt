@@ -1,0 +1,2678 @@
+/*
+ * AmaBeat (2026)
+ * © nastechresearch — github.com/nastechresearch
+ * GPL-3.0 License | Contributors: see git history
+ * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
+ */
+
+package dev.citali.amabeat.ui.screens
+
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LargeFlexibleTopAppBar
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedListItem
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
+import androidx.palette.graphics.Palette
+import coil3.compose.AsyncImage
+import coil3.imageLoader
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
+import coil3.toBitmap
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.flowOf
+import dev.citali.amabeat.LocalPlayerAwareWindowInsets
+import dev.citali.amabeat.LocalPlayerConnection
+import dev.citali.amabeat.R
+import dev.citali.amabeat.constants.StatPeriod
+import dev.citali.amabeat.db.entities.Artist
+import dev.citali.amabeat.db.entities.ListeningSummary
+import dev.citali.amabeat.db.entities.Song
+import dev.citali.amabeat.db.entities.SongWithStats
+import dev.citali.amabeat.extensions.toMediaItem
+import dev.citali.amabeat.extensions.togglePlayPause
+import moe.rukamori.archivetune.innertube.models.WatchEndpoint
+import dev.citali.amabeat.models.MediaMetadata
+import dev.citali.amabeat.models.toMediaMetadata
+import dev.citali.amabeat.playback.queues.ListQueue
+import dev.citali.amabeat.playback.queues.YouTubeQueue
+import dev.citali.amabeat.ui.component.ChoiceChipsRow
+import dev.citali.amabeat.ui.component.IconButton
+import dev.citali.amabeat.ui.component.ItemThumbnail
+import dev.citali.amabeat.ui.component.LocalAlbumsGrid
+import dev.citali.amabeat.ui.component.LocalArtistsGrid
+import dev.citali.amabeat.ui.component.LocalMenuState
+import dev.citali.amabeat.ui.menu.AlbumMenu
+import dev.citali.amabeat.ui.menu.ArtistMenu
+import dev.citali.amabeat.ui.menu.SongMenu
+import dev.citali.amabeat.ui.utils.backToMain
+import dev.citali.amabeat.utils.joinByBullet
+import dev.citali.amabeat.utils.makeTimeString
+import dev.citali.amabeat.viewmodels.CalendarRange
+import dev.citali.amabeat.viewmodels.ListeningCalendarData
+import dev.citali.amabeat.viewmodels.ListeningPatternSlot
+import dev.citali.amabeat.viewmodels.StatsScreenState
+import dev.citali.amabeat.viewmodels.StatsViewModel
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.YearMonth
+import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
+import java.time.temporal.WeekFields
+import java.util.Locale
+import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.floor
+import kotlin.math.roundToInt
+import kotlin.math.sin
+import kotlin.math.sqrt
+import android.graphics.Color as AndroidColor
+
+@OptIn(
+    ExperimentalMaterial3Api::class,
+    ExperimentalMaterial3ExpressiveApi::class,
+    ExperimentalFoundationApi::class,
+)
+@Composable
+fun StatsScreen(
+    navController: NavController,
+    viewModel: StatsViewModel = hiltViewModel(),
+) {
+    val menuState = LocalMenuState.current
+    val haptic = LocalHapticFeedback.current
+    val playerConnection = LocalPlayerConnection.current
+    val isPlayingFlow: Flow<Boolean> =
+        remember(playerConnection) { playerConnection?.isPlaying ?: flowOf(false) }
+    val mediaMetadataFlow: Flow<MediaMetadata?> =
+        remember(playerConnection) { playerConnection?.mediaMetadata ?: flowOf(null) }
+    val isPlaying by isPlayingFlow.collectAsStateWithLifecycle(initialValue = false)
+    val mediaMetadata by mediaMetadataFlow.collectAsStateWithLifecycle(initialValue = null)
+    val context = LocalContext.current
+
+    val screenState by viewModel.screenState.collectAsStateWithLifecycle()
+    val isYearPickerOpen by viewModel.yearPickerOpen.collectAsStateWithLifecycle()
+    val selectedCalendarRange by viewModel.selectedCalendarRange.collectAsStateWithLifecycle()
+
+    val data =
+        when (val state = screenState) {
+            StatsScreenState.Loading -> {
+                StatsStatusScreen(
+                    navController = navController,
+                    loading = true,
+                )
+                return
+            }
+
+            StatsScreenState.Empty -> {
+                StatsStatusScreen(navController = navController)
+                return
+            }
+
+            is StatsScreenState.Error -> {
+                StatsStatusScreen(
+                    navController = navController,
+                    errorMessage = stringResource(state.messageResId),
+                    onRetry = viewModel::retry,
+                )
+                return
+            }
+
+            is StatsScreenState.Success -> {
+                state.data
+            }
+        }
+
+    val indexChips = data.selectedPeriodIndex
+    val mostPlayedSongs = data.mostPlayedSongs
+    val mostPlayedSongsStats = data.visibleRankedSongs
+    val mostPlayedArtists = data.mostPlayedArtists
+    val mostPlayedAlbums = data.mostPlayedAlbums
+    val firstEvent = data.firstEvent
+    val selectedOption = data.selectedOption
+    val listeningByHour = data.listeningByHour
+    val listeningByDayOfWeek = data.listeningByDayOfWeek
+    val listeningCalendar = data.listeningCalendar
+    val listeningSummary = data.listeningSummary
+    val songsById = remember(mostPlayedSongs) { mostPlayedSongs.associateBy { it.id } }
+
+    val coroutineScope = rememberCoroutineScope()
+    val currentDate = remember { LocalDateTime.now() }
+
+    val availableYears =
+        remember(currentDate, firstEvent) {
+            val startYear = firstEvent?.event?.timestamp?.year ?: currentDate.year
+            (currentDate.year downTo startYear).toList()
+        }
+
+    val weeklyDates =
+        remember(currentDate, firstEvent) {
+            val first = firstEvent ?: return@remember emptyList<Pair<Int, String>>()
+            generateSequence(currentDate) { it.minusWeeks(1) }
+                .takeWhile { it.isAfter(first.event.timestamp.minusWeeks(1)) }
+                .mapIndexed { index, date ->
+                    val endDate = date.plusWeeks(1).minusDays(1).coerceAtMost(currentDate)
+                    val formatter = DateTimeFormatter.ofPattern("dd MMM")
+                    val startDateFormatted = formatter.format(date)
+                    val endDateFormatted = formatter.format(endDate)
+                    val text =
+                        when {
+                            date.year != currentDate.year -> "$startDateFormatted, ${date.year} - $endDateFormatted, ${endDate.year}"
+                            date.month != endDate.month -> "$startDateFormatted - $endDateFormatted"
+                            else -> "${date.dayOfMonth} - $endDateFormatted"
+                        }
+                    Pair(index, text)
+                }.toList()
+        }
+
+    val monthlyDates =
+        remember(currentDate, firstEvent) {
+            val first = firstEvent ?: return@remember emptyList<Pair<Int, String>>()
+            generateSequence(currentDate.plusMonths(1).withDayOfMonth(1).minusDays(1)) { it.minusMonths(1) }
+                .takeWhile { it.isAfter(first.event.timestamp.withDayOfMonth(1)) }
+                .mapIndexed { index, date ->
+                    val formatter = DateTimeFormatter.ofPattern("MMM")
+                    val text = if (date.year != currentDate.year) "${formatter.format(date)} ${date.year}" else formatter.format(date)
+                    Pair(index, text)
+                }.toList()
+        }
+
+    val yearlyDates =
+        remember(currentDate, firstEvent) {
+            val first = firstEvent ?: return@remember emptyList<Pair<Int, String>>()
+            generateSequence(currentDate.plusYears(1).withDayOfYear(1).minusDays(1)) { it.minusYears(1) }
+                .takeWhile { it.isAfter(first.event.timestamp) }
+                .mapIndexed { index, date -> Pair(index, "${date.year}") }
+                .toList()
+        }
+
+    val topAppBarScrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
+    Scaffold(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection),
+        topBar = {
+            LargeFlexibleTopAppBar(
+                title = {
+                    Text(
+                        text = stringResource(R.string.stats),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
+                subtitle = {
+                    Text(
+                        text = stringResource(R.string.settings_stats_subtitle),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
+                navigationIcon = {
+                    IconButton(
+                        onClick = navController::navigateUp,
+                        onLongClick = navController::backToMain,
+                    ) {
+                        Icon(painterResource(R.drawable.arrow_back), contentDescription = null)
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = viewModel::showYearPicker,
+                        onLongClick = {},
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.auto_awesome),
+                            contentDescription = stringResource(R.string.year_in_music),
+                        )
+                    }
+                },
+                scrollBehavior = topAppBarScrollBehavior,
+            )
+        },
+    ) { scaffoldPadding ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                contentPadding =
+                    LocalPlayerAwareWindowInsets.current
+                        .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
+                        .asPaddingValues(),
+                modifier =
+                    Modifier
+                        .widthIn(max = 1040.dp)
+                        .fillMaxHeight()
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter)
+                        .padding(top = scaffoldPadding.calculateTopPadding()),
+            ) {
+                item(key = "rangeControls", contentType = "controls") {
+                    StatsFilterPanel(modifier = Modifier.animateItem()) {
+                        ChoiceChipsRow(
+                            chips =
+                                when (selectedOption) {
+                                    OptionStats.WEEKS -> {
+                                        weeklyDates
+                                    }
+
+                                    OptionStats.MONTHS -> {
+                                        monthlyDates
+                                    }
+
+                                    OptionStats.YEARS -> {
+                                        yearlyDates
+                                    }
+
+                                    OptionStats.CONTINUOUS -> {
+                                        listOf(
+                                            StatPeriod.WEEK_1.ordinal to pluralStringResource(R.plurals.n_week, 1, 1),
+                                            StatPeriod.MONTH_1.ordinal to pluralStringResource(R.plurals.n_month, 1, 1),
+                                            StatPeriod.MONTH_3.ordinal to pluralStringResource(R.plurals.n_month, 3, 3),
+                                            StatPeriod.MONTH_6.ordinal to pluralStringResource(R.plurals.n_month, 6, 6),
+                                            StatPeriod.YEAR_1.ordinal to pluralStringResource(R.plurals.n_year, 1, 1),
+                                            StatPeriod.ALL.ordinal to stringResource(R.string.filter_all),
+                                        )
+                                    }
+                                },
+                            options =
+                                listOf(
+                                    OptionStats.CONTINUOUS to stringResource(R.string.continuous),
+                                    OptionStats.WEEKS to stringResource(R.string.weeks),
+                                    OptionStats.MONTHS to stringResource(R.string.months),
+                                    OptionStats.YEARS to stringResource(R.string.years),
+                                ),
+                            selectedOption = selectedOption,
+                            onSelectionChange = viewModel::onOptionSelected,
+                            currentValue = indexChips,
+                            onValueUpdate = viewModel::onChipIndexChanged,
+                        )
+                    }
+                }
+
+                if (!data.hasPlaysInPeriod) {
+                    item(key = "periodEmpty", contentType = "status") {
+                        StatsPeriodEmptyMessage(modifier = Modifier.animateItem())
+                    }
+                    item(key = "listeningPatternsEmptyPeriod", contentType = "insights") {
+                        StatsListeningPatterns(
+                            daySlots = listeningByDayOfWeek,
+                            hourSlots = listeningByHour,
+                            modifier = Modifier.animateItem(),
+                        )
+                    }
+                    item(key = "listeningCalendarEmptyPeriod", contentType = "insights") {
+                        StatsListeningCalendar(
+                            calendar = listeningCalendar,
+                            selectedRange = selectedCalendarRange,
+                            onRangeSelected = viewModel::onCalendarRangeSelected,
+                            modifier = Modifier.animateItem(),
+                        )
+                    }
+                    return@LazyColumn
+                }
+
+                item(key = "overview", contentType = "overview") {
+                    StatsSummarySection(
+                        summary = listeningSummary,
+                        previousPeriodTimeListened = data.previousPeriodTimeListened,
+                        comparisonLabelResId = data.comparisonLabelResId,
+                        modifier = Modifier.animateItem(),
+                    )
+                }
+
+                item(key = "artistDistribution", contentType = "insights") {
+                    if (mostPlayedArtists.isNotEmpty()) {
+                        val rankedArtistCount = mostPlayedArtists.count { (it.timeListened ?: 0) > 0 }
+                        Column(modifier = Modifier.animateItem()) {
+                            StatsSectionHeader(
+                                title = stringResource(R.string.stats_artist_breakdown),
+                                supportingText =
+                                    pluralStringResource(
+                                        R.plurals.stats_artist_count,
+                                        rankedArtistCount,
+                                        rankedArtistCount,
+                                    ),
+                            )
+                            SegmentedArtistChart(
+                                artists = mostPlayedArtists,
+                                totalTimeListened = listeningSummary.totalTimeListened,
+                                animationKey = selectedOption to indexChips,
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                            )
+                        }
+                    }
+                }
+
+                item(key = "spotlights", contentType = "spotlights") {
+                    val topSong = mostPlayedSongsStats.firstOrNull()
+                    StatsHighlightsSection(
+                        topArtist = mostPlayedArtists.firstOrNull(),
+                        topSong = topSong,
+                        topSongEntity =
+                            topSong?.let { rankedSong ->
+                                mostPlayedSongs.firstOrNull { it.id == rankedSong.id }
+                            },
+                        navController = navController,
+                        modifier = Modifier.animateItem(),
+                    )
+                }
+
+                item(key = "listeningPatterns", contentType = "insights") {
+                    StatsListeningPatterns(
+                        daySlots = listeningByDayOfWeek,
+                        hourSlots = listeningByHour,
+                        modifier = Modifier.animateItem(),
+                    )
+                }
+
+                item(key = "listeningCalendar", contentType = "insights") {
+                    StatsListeningCalendar(
+                        calendar = listeningCalendar,
+                        selectedRange = selectedCalendarRange,
+                        onRangeSelected = viewModel::onCalendarRangeSelected,
+                        modifier = Modifier.animateItem(),
+                    )
+                }
+
+                item(key = "mostPlayedSongsHeader", contentType = "sectionHeader") {
+                    StatsSongsHeader(
+                        title = stringResource(R.string.stats_top_songs),
+                        count = data.rankedSongCount,
+                        shuffleEnabled = playerConnection != null && mostPlayedSongs.isNotEmpty(),
+                        onShuffle = {
+                            playerConnection?.playQueue(
+                                ListQueue(
+                                    title = context.getString(R.string.most_played_songs),
+                                    items = mostPlayedSongs.map { it.toMediaMetadata().toMediaItem() }.shuffled(),
+                                ),
+                            )
+                        },
+                        modifier = Modifier.animateItem(),
+                    )
+                }
+
+                val visibleRankedSongs = mostPlayedSongsStats
+
+                itemsIndexed(
+                    items = visibleRankedSongs,
+                    key = { _, song -> song.id },
+                    contentType = { _, _ -> "ranked_song" },
+                ) { index, song ->
+                    val songEntity = songsById[song.id] ?: return@itemsIndexed
+                    RankedSongItem(
+                        song = song,
+                        rank = index + 1,
+                        count = visibleRankedSongs.size,
+                        isActive = song.id == mediaMetadata?.id,
+                        isPlaying = isPlaying,
+                        onClick = {
+                            if (song.id == mediaMetadata?.id) {
+                                playerConnection?.player?.togglePlayPause()
+                            } else {
+                                playerConnection?.playQueue(
+                                    YouTubeQueue(
+                                        endpoint = WatchEndpoint(song.id),
+                                        preloadItem = songEntity.toMediaMetadata(),
+                                    ),
+                                )
+                            }
+                        },
+                        onLongClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            menuState.show {
+                                SongMenu(
+                                    originalSong = songEntity,
+                                    navController = navController,
+                                    onDismiss = menuState::dismiss,
+                                )
+                            }
+                        },
+                        modifier = Modifier.animateItem(),
+                    )
+                }
+
+                if (data.canExpandSongList) {
+                    item(key = "songListExpansion", contentType = "sectionAction") {
+                        TextButton(
+                            onClick = viewModel::toggleSongListExpanded,
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                                    .animateItem(),
+                        ) {
+                            Icon(
+                                painter =
+                                    painterResource(
+                                        if (data.isSongListExpanded) {
+                                            R.drawable.expand_less
+                                        } else {
+                                            R.drawable.expand_more
+                                        },
+                                    ),
+                                contentDescription = null,
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text =
+                                    if (data.isSongListExpanded) {
+                                        stringResource(R.string.stats_show_top_songs)
+                                    } else {
+                                        stringResource(R.string.stats_show_all_songs, data.rankedSongCount)
+                                    },
+                            )
+                        }
+                    }
+                }
+
+                item(key = "mostPlayedArtists", contentType = "sectionHeader") {
+                    StatsSectionHeader(
+                        title = stringResource(R.string.artists),
+                        supportingText = mostPlayedArtists.size.toString(),
+                        modifier = Modifier.animateItem(),
+                    )
+                }
+
+                item(key = "artistsShelf", contentType = "artists_shelf") {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        items(
+                            items = mostPlayedArtists,
+                            key = { artist -> artist.id },
+                            contentType = { "artist" },
+                        ) { artist ->
+                            LocalArtistsGrid(
+                                title = artist.artist.name,
+                                subtitle =
+                                    joinByBullet(
+                                        pluralStringResource(R.plurals.n_time, artist.songCount, artist.songCount),
+                                        makeTimeString(artist.timeListened?.toLong()),
+                                    ),
+                                thumbnailUrl = artist.artist.thumbnailUrl,
+                                modifier =
+                                    Modifier
+                                        .width(164.dp)
+                                        .combinedClickable(
+                                            onClick = { navController.navigate("artist/${artist.id}") },
+                                            onLongClick = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                menuState.show {
+                                                    ArtistMenu(
+                                                        originalArtist = artist,
+                                                        coroutineScope = coroutineScope,
+                                                        onDismiss = menuState::dismiss,
+                                                    )
+                                                }
+                                            },
+                                        ),
+                            )
+                        }
+                    }
+                }
+
+                item(key = "mostPlayedAlbumsHeader", contentType = "sectionHeader") {
+                    StatsSectionHeader(
+                        title = stringResource(R.string.albums),
+                        supportingText = mostPlayedAlbums.size.toString(),
+                        modifier = Modifier.animateItem(),
+                    )
+                }
+
+                item(key = "albumsRow", contentType = "albums_row") {
+                    if (mostPlayedAlbums.isNotEmpty()) {
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            itemsIndexed(
+                                items = mostPlayedAlbums,
+                                key = { _, album -> album.id },
+                                contentType = { _, _ -> "album_grid" },
+                            ) { index, album ->
+                                val playCount = album.songCountListened ?: 0
+                                LocalAlbumsGrid(
+                                    title = "${index + 1}. ${album.album.title}",
+                                    subtitle =
+                                        joinByBullet(
+                                            pluralStringResource(R.plurals.n_time, playCount, playCount),
+                                            makeTimeString(album.timeListened?.toLong()),
+                                        ),
+                                    thumbnailUrl = album.album.thumbnailUrl,
+                                    isActive = album.id == mediaMetadata?.album?.id,
+                                    isPlaying = isPlaying,
+                                    modifier =
+                                        Modifier
+                                            .width(172.dp)
+                                            .combinedClickable(
+                                                onClick = { navController.navigate("album/${album.id}") },
+                                                onLongClick = {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                    menuState.show {
+                                                        AlbumMenu(
+                                                            originalAlbum = album,
+                                                            navController = navController,
+                                                            onDismiss = menuState::dismiss,
+                                                        )
+                                                    }
+                                                },
+                                            ).animateItem(),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (isYearPickerOpen) {
+                StatsYearPickerDialog(
+                    availableYears = availableYears,
+                    selectedYear = currentDate.year,
+                    onSelectYear = { year ->
+                        viewModel.dismissYearPicker()
+                        navController.navigate("year_in_music?year=$year")
+                    },
+                    onDismiss = viewModel::dismissYearPicker,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatsStatusScreen(
+    navController: NavController,
+    loading: Boolean = false,
+    errorMessage: String? = null,
+    onRetry: (() -> Unit)? = null,
+) {
+    Scaffold(
+        topBar = {
+            LargeFlexibleTopAppBar(
+                title = { Text(stringResource(R.string.stats)) },
+                navigationIcon = {
+                    IconButton(
+                        onClick = navController::navigateUp,
+                        onLongClick = navController::backToMain,
+                    ) {
+                        Icon(painterResource(R.drawable.arrow_back), contentDescription = null)
+                    }
+                },
+            )
+        },
+    ) { contentPadding ->
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(contentPadding)
+                    .padding(horizontal = 24.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (loading) {
+                LoadingIndicator(modifier = Modifier.size(48.dp))
+            } else {
+                Column(
+                    modifier = Modifier.widthIn(max = 420.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(
+                        text =
+                            if (errorMessage == null) {
+                                stringResource(R.string.stats_empty_title)
+                            } else {
+                                errorMessage
+                            },
+                        style = MaterialTheme.typography.titleLarge,
+                        textAlign = TextAlign.Center,
+                    )
+                    if (errorMessage == null) {
+                        Text(
+                            text = stringResource(R.string.stats_empty_message),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                    if (onRetry != null) {
+                        Button(onClick = onRetry) {
+                            Text(stringResource(R.string.retry))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatsPeriodEmptyMessage(modifier: Modifier = Modifier) {
+    Column(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 48.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.stats_period_empty_title),
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            text = stringResource(R.string.stats_period_empty_message),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+@Composable
+private fun StatsFilterPanel(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    Surface(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.stats_time_range),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+            content()
+        }
+    }
+}
+
+@Composable
+private fun StatsSongsHeader(
+    title: String,
+    count: Int,
+    shuffleEnabled: Boolean,
+    onShuffle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp, top = 24.dp, end = 16.dp, bottom = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = count.toString(),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        FilledTonalButton(
+            onClick = onShuffle,
+            enabled = shuffleEnabled,
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.shuffle),
+                contentDescription = null,
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(stringResource(R.string.shuffle))
+        }
+    }
+}
+
+@Composable
+private fun StatsListeningPatterns(
+    daySlots: List<ListeningPatternSlot>,
+    hourSlots: List<ListeningPatternSlot>,
+    modifier: Modifier = Modifier,
+) {
+    if (daySlots.isEmpty() && hourSlots.isEmpty()) return
+
+    Column(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.stats_listening_patterns),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 4.dp),
+        )
+        BoxWithConstraints {
+            if (maxWidth >= 720.dp && daySlots.isNotEmpty() && hourSlots.isNotEmpty()) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    ListeningByDayChart(
+                        slots = daySlots,
+                        modifier = Modifier.weight(1f),
+                    )
+                    ListeningByHourChart(
+                        slots = hourSlots,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (daySlots.isNotEmpty()) {
+                        ListeningByDayChart(
+                            slots = daySlots,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    if (hourSlots.isNotEmpty()) {
+                        ListeningByHourChart(
+                            slots = hourSlots,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatsSectionHeader(
+    title: String,
+    supportingText: String,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp, top = 24.dp, end = 20.dp, bottom = 10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = supportingText,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun RankedSongItem(
+    song: SongWithStats,
+    rank: Int,
+    count: Int,
+    isActive: Boolean,
+    isPlaying: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val rowShapes = ListItemDefaults.segmentedShapes(index = rank - 1, count = count)
+    val click = remember(song.id, onClick) { onClick }
+    val longClick = remember(song.id, onLongClick) { onLongClick }
+
+    SegmentedListItem(
+        onClick = click,
+        onLongClick = longClick,
+        shapes = rowShapes,
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 1.dp),
+        colors =
+            ListItemDefaults.segmentedColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            ),
+        leadingContent = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    text = rank.toString(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color =
+                        if (rank <= 3) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.width(24.dp),
+                )
+                ItemThumbnail(
+                    thumbnailUrl = song.thumbnailUrl,
+                    isActive = isActive,
+                    isPlaying = isPlaying,
+                    shape = MaterialTheme.shapes.small,
+                    maxSizePx = 200,
+                    modifier = Modifier.size(56.dp),
+                )
+            }
+        },
+        supportingContent = {
+            Text(
+                text =
+                    joinByBullet(
+                        pluralStringResource(
+                            R.plurals.n_time,
+                            song.songCountListened,
+                            song.songCountListened,
+                        ),
+                        makeTimeString(song.timeListened),
+                    ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+    ) {
+        Text(
+            text = song.title,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun StatsYearPickerDialog(
+    availableYears: List<Int>,
+    selectedYear: Int,
+    onSelectYear: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = stringResource(R.string.year_in_music),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+        },
+        text = {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                items(
+                    items = availableYears,
+                    key = { year -> year },
+                    contentType = { "year_chip" },
+                ) { year ->
+                    val isSelected = year == selectedYear
+                    Text(
+                        text = year.toString(),
+                        modifier =
+                            Modifier
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(
+                                    if (isSelected) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                    },
+                                ).clickable { onSelectYear(year) }
+                                .padding(horizontal = 20.dp, vertical = 12.dp),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color =
+                            if (isSelected) {
+                                MaterialTheme.colorScheme.onPrimary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(R.string.dismiss))
+            }
+        },
+    )
+}
+
+@Composable
+private fun StatsSummarySection(
+    summary: ListeningSummary,
+    previousPeriodTimeListened: Long?,
+    comparisonLabelResId: Int?,
+    modifier: Modifier = Modifier,
+) {
+    if (summary.totalPlayCount == 0) return
+
+    Surface(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        BoxWithConstraints(modifier = Modifier.padding(20.dp)) {
+            val expanded = maxWidth >= 680.dp
+            if (expanded) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(24.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    StatsListeningTimeHero(
+                        summary = summary,
+                        previousPeriodTimeListened = previousPeriodTimeListened,
+                        comparisonLabelResId = comparisonLabelResId,
+                        modifier = Modifier.weight(1.2f),
+                    )
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        StatMetricCard(
+                            label = stringResource(R.string.stats_total_plays),
+                            value = summary.totalPlayCount.toString(),
+                        )
+                        StatMetricCard(
+                            label = stringResource(R.string.stats_unique_songs),
+                            value = summary.uniqueSongsCount.toString(),
+                        )
+                        StatMetricCard(
+                            label = stringResource(R.string.stats_unique_artists),
+                            value = summary.uniqueArtistsCount.toString(),
+                        )
+                    }
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    StatsListeningTimeHero(
+                        summary = summary,
+                        previousPeriodTimeListened = previousPeriodTimeListened,
+                        comparisonLabelResId = comparisonLabelResId,
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        StatMetricCard(
+                            label = stringResource(R.string.stats_total_plays),
+                            value = summary.totalPlayCount.toString(),
+                            modifier = Modifier.weight(1f),
+                        )
+                        StatMetricCard(
+                            label = stringResource(R.string.stats_unique_songs),
+                            value = summary.uniqueSongsCount.toString(),
+                            modifier = Modifier.weight(1f),
+                        )
+                        StatMetricCard(
+                            label = stringResource(R.string.stats_unique_artists),
+                            value = summary.uniqueArtistsCount.toString(),
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatsListeningTimeHero(
+    summary: ListeningSummary,
+    previousPeriodTimeListened: Long?,
+    comparisonLabelResId: Int?,
+    modifier: Modifier = Modifier,
+) {
+    val foreground = MaterialTheme.colorScheme.onPrimaryContainer
+    val comparisonLabel =
+        if (comparisonLabelResId != null) {
+            stringResource(comparisonLabelResId)
+        } else {
+            null
+        }
+    val trendText =
+        when {
+            comparisonLabel == null -> stringResource(R.string.stats_trend_all_time)
+            previousPeriodTimeListened == null -> stringResource(R.string.stats_trend_no_comparison)
+            previousPeriodTimeListened <= 0L -> stringResource(R.string.stats_trend_no_previous_listening)
+            else -> {
+                val percentChange =
+                    (
+                        (summary.totalTimeListened.toDouble() - previousPeriodTimeListened.toDouble()) /
+                            previousPeriodTimeListened.toDouble() * 100.0
+                    ).roundToInt()
+                when {
+                    percentChange > 0 ->
+                        stringResource(R.string.stats_trend_increase, percentChange, comparisonLabel)
+
+                    percentChange < 0 ->
+                        stringResource(R.string.stats_trend_decrease, -percentChange, comparisonLabel)
+
+                    else -> stringResource(R.string.stats_trend_unchanged, comparisonLabel)
+                }
+            }
+        }
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.primaryContainer,
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.stats_total_time_listened),
+                style = MaterialTheme.typography.labelLarge,
+                color = foreground,
+            )
+            Text(
+                text = makeTimeString(summary.totalTimeListened) ?: "-",
+                style = MaterialTheme.typography.displaySmall,
+                fontWeight = FontWeight.Bold,
+                color = foreground,
+            )
+            Text(
+                text = trendText,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = foreground,
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatMetricCard(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun StatsHighlightsSection(
+    topArtist: Artist?,
+    topSong: SongWithStats?,
+    topSongEntity: Song?,
+    navController: NavController,
+    modifier: Modifier = Modifier,
+) {
+    if (topArtist == null && topSong == null) return
+
+    Column(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        if (topArtist != null) {
+            StatsHighlightCard(
+                title = stringResource(R.string.stats_favourite_artist),
+                mainText = topArtist.artist.name,
+                subText = "${topArtist.songCount} ${stringResource(
+                    R.string.songs,
+                ).lowercase()} • ${makeTimeString(topArtist.timeListened?.toLong())}",
+                imageUrl = topArtist.artist.thumbnailUrl,
+                useCircleShape = true,
+                onClick = { navController.navigate("artist/${topArtist.id}") },
+            )
+        }
+        if (topSong != null && topSongEntity != null) {
+            StatsHighlightCard(
+                title = stringResource(R.string.stats_favourite_song),
+                mainText = topSong.title,
+                subText = "${pluralStringResource(
+                    R.plurals.n_time,
+                    topSong.songCountListened,
+                    topSong.songCountListened,
+                )} • ${makeTimeString(topSong.timeListened)}",
+                imageUrl = topSong.thumbnailUrl,
+                useCircleShape = false,
+                onClick = {},
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatsHighlightCard(
+    title: String,
+    mainText: String,
+    subText: String,
+    imageUrl: String?,
+    useCircleShape: Boolean,
+    onClick: () -> Unit,
+) {
+    ElevatedCard(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.elevatedCardColors(),
+    ) {
+        Row(
+            modifier =
+                Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier =
+                    Modifier
+                        .size(80.dp)
+                        .clip(if (useCircleShape) CircleShape else MaterialTheme.shapes.medium),
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = mainText,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = subText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The wide [StatsListeningCalendar] grid switches to a week-column layout when the window fits in
+ * this many columns. Past it the cells would be smaller than the month-row grid's, which is the
+ * thing the switch exists to avoid - twelve months land on 53 columns, so a year is exactly the
+ * window that keeps the month rows.
+ */
+private const val MAX_CALENDAR_WEEK_COLUMNS = 27
+
+/**
+ * A ceiling on the week-column cell, in dp. Below it the grid always fills the card's width; at a
+ * month or so it would otherwise stretch into oversized squares.
+ */
+private val MAX_CALENDAR_WEEK_CELL = 22.dp
+
+private const val TOP_ARTIST_SLICES = 5
+private const val AVATAR_STACK_SIZE = 4
+
+private data class ArtistBreakdownSegment(
+    val key: String,
+    val artist: Artist,
+    val startAngle: Float,
+    val sweepAngle: Float,
+    val percentage: Int,
+)
+
+/**
+ * The chart's leading slices plus whatever is left over.
+ *
+ * The ring is deliberately not filled: [segments] cover only the leading
+ * artists, each swept in proportion to [allocationTotal], and the remainder is
+ * drawn as an unfilled track so the chart reads "these few make up N% of your
+ * listening" instead of spending half the ring on an anonymous block.
+ * [remainingArtists] feeds the avatar-stack row and the full-list sheet.
+ */
+private data class ArtistBreakdown(
+    val segments: List<ArtistBreakdownSegment>,
+    val rankedArtists: List<Artist>,
+    val shownTime: Long,
+    val allocationTotal: Long,
+) {
+    val remainingArtists: List<Artist> get() = rankedArtists.drop(segments.size)
+
+    val remainingShare: Int
+        get() =
+            if (allocationTotal > 0L) {
+                (((allocationTotal - shownTime).coerceAtLeast(0L) * 100f) / allocationTotal).roundToInt()
+            } else {
+                0
+            }
+
+    val shownShare: Int get() = 100 - remainingShare
+}
+
+private fun buildArtistBreakdown(
+    artists: List<Artist>,
+    totalTimeListened: Long,
+): ArtistBreakdown {
+    val rankedByTime =
+        artists
+            .mapNotNull { artist ->
+                val time = artist.timeListened?.toLong() ?: 0L
+                if (time <= 0L) null else artist to time
+            }.sortedByDescending { it.second }
+    val artistTotal = rankedByTime.sumOf { it.second }
+    val displayTotal = totalTimeListened.takeIf { it > 0L } ?: artistTotal
+    val allocationTotal = maxOf(displayTotal, artistTotal)
+    if (allocationTotal <= 0L || rankedByTime.isEmpty()) {
+        return ArtistBreakdown(emptyList(), emptyList(), 0L, 0L)
+    }
+
+    val topArtists = rankedByTime.take(TOP_ARTIST_SLICES)
+    val shownTime = topArtists.sumOf { it.second }
+    var startAngle = -90f
+    val segments =
+        topArtists.map { (artist, time) ->
+            ArtistBreakdownSegment(
+                key = artist.id,
+                artist = artist,
+                startAngle = startAngle,
+                sweepAngle = (time.toDouble() / allocationTotal.toDouble() * 360.0).toFloat(),
+                percentage = ((time * 100f) / allocationTotal).roundToInt(),
+            ).also {
+                startAngle += it.sweepAngle
+            }
+        }
+    return ArtistBreakdown(segments, rankedByTime.map { it.first }, shownTime, allocationTotal)
+}
+
+/** "2h 0m" style duration for the tight centre readout of the artist ring. */
+private fun makeCompactTimeString(durationMs: Long): String {
+    val totalMinutes = (durationMs / 60_000L).coerceAtLeast(0L)
+    val days = totalMinutes / 1440
+    val hours = (totalMinutes % 1440) / 60
+    val minutes = totalMinutes % 60
+    return when {
+        days > 0 -> "${days}d ${hours}h"
+        hours > 0 -> "${hours}h ${minutes}m"
+        else -> "${minutes}m"
+    }
+}
+
+@Composable
+private fun SegmentedArtistChart(
+    artists: List<Artist>,
+    totalTimeListened: Long,
+    animationKey: Any,
+    modifier: Modifier = Modifier,
+) {
+    val breakdown = remember(artists, totalTimeListened) { buildArtistBreakdown(artists, totalTimeListened) }
+    val segmentData = breakdown.segments
+    if (segmentData.isEmpty()) return
+
+    val context = LocalContext.current
+    val menuState = LocalMenuState.current
+    val photoColors = remember { mutableStateOf<Map<String, Color>>(emptyMap()) }
+    val photoSources =
+        remember(segmentData) {
+            segmentData
+                .mapNotNull { segment ->
+                    segment.artist.thumbnailUrl
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { segment.artist.id to it }
+                }.distinctBy { it.first }
+        }
+    LaunchedEffect(photoSources) {
+        val artworkBitmaps =
+            withContext(Dispatchers.IO) {
+                val loaded = mutableListOf<Pair<String, android.graphics.Bitmap>>()
+                for ((artistId, url) in photoSources) {
+                    val bitmap =
+                        runCatching {
+                            val request =
+                                ImageRequest
+                                    .Builder(context)
+                                    .data(url)
+                                    .size(96, 96)
+                                    .allowHardware(false)
+                                    .build()
+                            context.imageLoader.execute(request).image?.toBitmap()
+                        }.getOrNull()
+                    if (bitmap != null) loaded += artistId to bitmap
+                }
+                loaded
+            }
+        photoColors.value =
+            withContext(Dispatchers.Default) {
+                artworkBitmaps.mapNotNull { (artistId, bitmap) ->
+                    val palette =
+                        runCatching {
+                            Palette
+                                .from(bitmap)
+                                .maximumColorCount(16)
+                                .resizeBitmapArea(64 * 64)
+                                .generate()
+                        }.getOrNull()
+                    val swatch =
+                        palette?.vibrantSwatch
+                            ?: palette?.lightVibrantSwatch
+                            ?: palette?.mutedSwatch
+                            ?: palette?.dominantSwatch
+                    swatch?.let { artistId to Color(it.rgb) }
+                }.toMap()
+            }
+    }
+
+    val segmentKeys = remember(segmentData) { segmentData.map { it.key } }
+    val selectedKey = remember(animationKey, segmentKeys) { mutableStateOf(segmentKeys.firstOrNull()) }
+    val selectedIndex = segmentData.indexOfFirst { it.key == selectedKey.value }.let { if (it >= 0) it else 0 }
+    val selectedSegment = segmentData[selectedIndex]
+    val sweepAnimation = remember(animationKey) { Animatable(0f) }
+    LaunchedEffect(sweepAnimation) {
+        sweepAnimation.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis = 950),
+        )
+    }
+    val sweepProgress = sweepAnimation.value
+
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val fallbackColors =
+        remember(primaryColor, segmentData.size) {
+            createDistinctArtistColors(
+                seedColor = primaryColor,
+                count = segmentData.size,
+            )
+        }
+    val segmentColors =
+        remember(segmentData, photoColors.value, fallbackColors) {
+            segmentData.mapIndexed { index, segment ->
+                photoColors.value[segment.key] ?: fallbackColors[index]
+            }
+        }
+    val trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.14f)
+
+    ElevatedCard(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.elevatedCardColors(),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Box(
+                    modifier =
+                        Modifier
+                            .size(140.dp)
+                            .drawWithCache {
+                                val strokeWidth = size.width * 0.18f
+                                val inset = strokeWidth / 2f
+                                val arcRect =
+                                    Rect(
+                                        left = inset,
+                                        top = inset,
+                                        right = size.width - inset,
+                                        bottom = size.height - inset,
+                                    )
+                                val selectedOffsetPx = 5.dp.toPx()
+                                onDrawBehind {
+                                    // Unfilled remainder: the ring is only painted for the
+                                    // leading slices, so whatever is left reads as an empty
+                                    // track instead of an anonymous "Other" block.
+                                    drawArc(
+                                        color = trackColor,
+                                        startAngle = 0f,
+                                        sweepAngle = 360f,
+                                        useCenter = false,
+                                        topLeft = arcRect.topLeft,
+                                        size = Size(arcRect.width, arcRect.height),
+                                        style = Stroke(width = strokeWidth, cap = StrokeCap.Butt),
+                                    )
+                                    val revealEnd = 360f * sweepProgress
+                                    segmentData.forEachIndexed { index, segment ->
+                                        val segmentStartFromTop = segment.startAngle + 90f
+                                        val segmentEndFromTop = segmentStartFromTop + segment.sweepAngle
+                                        val revealedSweep =
+                                            (minOf(segmentEndFromTop, revealEnd) - segmentStartFromTop)
+                                                .coerceAtLeast(0f)
+                                        val gapDegrees =
+                                            if (segmentData.size > 1) minOf(1.5f, segment.sweepAngle * 0.3f) else 0f
+                                        val reachesSegmentEnd = revealedSweep >= segment.sweepAngle
+                                        val visibleSweep =
+                                            if (reachesSegmentEnd) {
+                                                (segment.sweepAngle - gapDegrees).coerceAtLeast(0f)
+                                            } else {
+                                                (revealedSweep - gapDegrees / 2f).coerceAtLeast(0f)
+                                            }
+                                        if (visibleSweep > 0.25f) {
+                                            val isSelected = index == selectedIndex
+                                            val middleAngle = segment.startAngle + segment.sweepAngle / 2f
+                                            val radians = middleAngle.toDouble() * PI / 180.0
+                                            val dx = if (isSelected) cos(radians).toFloat() * selectedOffsetPx else 0f
+                                            val dy = if (isSelected) sin(radians).toFloat() * selectedOffsetPx else 0f
+                                            withTransform({ translate(left = dx, top = dy) }) {
+                                                drawArc(
+                                                    color =
+                                                        segmentColors[index].copy(
+                                                            alpha = if (isSelected) 1f else 0.36f,
+                                                        ),
+                                                    startAngle = segment.startAngle + gapDegrees / 2f,
+                                                    sweepAngle = visibleSweep,
+                                                    useCenter = false,
+                                                    topLeft = arcRect.topLeft,
+                                                    size = Size(arcRect.width, arcRect.height),
+                                                    style = Stroke(width = strokeWidth, cap = StrokeCap.Butt),
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }.pointerInput(animationKey, segmentData) {
+                                detectTapGestures { offset ->
+                                    val centerX = size.width / 2f
+                                    val centerY = size.height / 2f
+                                    val dx = offset.x - centerX
+                                    val dy = offset.y - centerY
+                                    val distance = sqrt(dx * dx + dy * dy)
+                                    val outerRadius = minOf(size.width, size.height) / 2f
+                                    val innerRadius = outerRadius - size.width * 0.18f
+                                    val hitSlop = 8.dp.toPx()
+                                    if (distance < innerRadius - hitSlop || distance > outerRadius + hitSlop) {
+                                        return@detectTapGestures
+                                    }
+
+                                    val rawAngle = atan2(dy, dx) * 180f / PI.toFloat()
+                                    val angleFromTop = (rawAngle + 90f + 360f) % 360f
+                                    var sweepStart = 0f
+                                    val tappedIndex =
+                                        segmentData.indexOfFirst { segment ->
+                                            val containsAngle =
+                                                angleFromTop >= sweepStart &&
+                                                    angleFromTop < sweepStart + segment.sweepAngle
+                                            sweepStart += segment.sweepAngle
+                                            containsAngle
+                                        }
+                                    if (tappedIndex >= 0) selectedKey.value = segmentData[tappedIndex].key
+                                }
+                            },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(
+                        modifier = Modifier.width(86.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(1.dp),
+                    ) {
+                        AsyncImage(
+                            model = selectedSegment.artist.thumbnailUrl,
+                            contentDescription = null,
+                            placeholder = painterResource(R.drawable.person),
+                            error = painterResource(R.drawable.person),
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.size(34.dp).clip(CircleShape),
+                        )
+                        Text(
+                            text = "${selectedSegment.percentage}%",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                        )
+                        // The name lives on the highlighted legend row; the centre
+                        // keeps to photo, share and time so nothing ever truncates.
+                        Text(
+                            text = makeCompactTimeString(selectedSegment.artist.timeListened?.toLong() ?: 0L),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                        )
+                    }
+                }
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.weight(1f),
+                ) {
+                    segmentData.forEachIndexed { index, segment ->
+                        val isSelected = index == selectedIndex
+                        val alpha = if (isSelected) 1f else 0.48f
+                        val rowColor = if (isSelected) segmentColors[index].copy(alpha = 0.12f) else Color.Transparent
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(rowColor)
+                                    .clickable { selectedKey.value = segment.key }
+                                    .padding(horizontal = 5.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(7.dp),
+                        ) {
+                            AsyncImage(
+                                model = segment.artist.thumbnailUrl,
+                                contentDescription = null,
+                                placeholder = painterResource(R.drawable.person),
+                                error = painterResource(R.drawable.person),
+                                contentScale = ContentScale.Crop,
+                                modifier =
+                                    Modifier
+                                        .size(30.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .graphicsLayer { this.alpha = alpha },
+                            )
+                            Text(
+                                text = segment.artist.artist.name,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Text(
+                                text = "${segment.percentage}%",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha),
+                            )
+                        }
+                    }
+
+                    if (breakdown.remainingArtists.isNotEmpty()) {
+                        ArtistBreakdownMoreRow(
+                            remainingArtists = breakdown.remainingArtists,
+                            remainingShare = breakdown.remainingShare,
+                            onClick = {
+                                menuState.show {
+                                    ArtistBreakdownSheetContent(
+                                        rankedArtists = breakdown.rankedArtists,
+                                        allocationTotal = breakdown.allocationTotal,
+                                    )
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+
+            Text(
+                text =
+                    stringResource(
+                        R.string.stats_top_share_insight,
+                        segmentData.size,
+                        breakdown.shownShare,
+                    ),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ArtistBreakdownMoreRow(
+    remainingArtists: List<Artist>,
+    remainingShare: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .clickable(onClick = onClick)
+                .padding(horizontal = 5.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(7.dp),
+    ) {
+        // Overlapping avatars so the remainder promises real people; tapping the
+        // row opens the full ranked list.
+        Box(
+            modifier = Modifier.size(30.dp),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            remainingArtists
+                .take(AVATAR_STACK_SIZE)
+                .reversed()
+                .forEachIndexed { stackIndex, artist ->
+                    AsyncImage(
+                        model = artist.thumbnailUrl,
+                        contentDescription = null,
+                        placeholder = painterResource(R.drawable.person),
+                        error = painterResource(R.drawable.person),
+                        contentScale = ContentScale.Crop,
+                        modifier =
+                            Modifier
+                                .offset(x = ((AVATAR_STACK_SIZE - 1 - stackIndex) * 7).dp)
+                                .size(22.dp)
+                                .clip(CircleShape)
+                                .border(2.dp, MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape),
+                    )
+                }
+        }
+        Text(
+            text = stringResource(R.string.stats_more_artists, remainingArtists.size, remainingShare),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun ArtistBreakdownSheetContent(
+    rankedArtists: List<Artist>,
+    allocationTotal: Long,
+) {
+    Text(
+        text = stringResource(R.string.stats_artist_breakdown),
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 4.dp, bottom = 8.dp),
+    )
+    LazyColumn(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        itemsIndexed(rankedArtists, key = { _, artist -> artist.id }) { index, artist ->
+            val time = artist.timeListened?.toLong() ?: 0L
+            val share = if (allocationTotal > 0L) ((time * 100f) / allocationTotal).roundToInt() else 0
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    text = "${index + 1}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.width(24.dp),
+                )
+                AsyncImage(
+                    model = artist.thumbnailUrl,
+                    contentDescription = null,
+                    placeholder = painterResource(R.drawable.person),
+                    error = painterResource(R.drawable.person),
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)),
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = artist.artist.name,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = makeCompactTimeString(time),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                }
+                Text(
+                    text = "$share%",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+private fun createDistinctArtistColors(
+    seedColor: Color,
+    count: Int,
+): List<Color> {
+    if (count <= 0) return emptyList()
+
+    val seedHsv = FloatArray(3)
+    AndroidColor.colorToHSV(seedColor.toArgb(), seedHsv)
+    val saturation = seedHsv[1].coerceAtLeast(0.62f)
+    val brightness = seedHsv[2].coerceIn(0.68f, 0.88f)
+    val hueStep = 360f / count
+
+    return List(count) { index ->
+        Color.hsv(
+            hue = (seedHsv[0] + hueStep * index) % 360f,
+            saturation = saturation,
+            value = brightness,
+        )
+    }
+}
+
+@Composable
+private fun ListeningByDayChart(
+    slots: List<ListeningPatternSlot>,
+    modifier: Modifier = Modifier,
+) {
+    val dayLabels =
+        listOf(
+            R.string.day_sun,
+            R.string.day_mon,
+            R.string.day_tue,
+            R.string.day_wed,
+            R.string.day_thu,
+            R.string.day_fri,
+            R.string.day_sat,
+        )
+    val weekdayPluralNames = stringArrayResource(R.array.stats_pattern_weekday_plural)
+    val slotMap = remember(slots) { slots.associateBy { it.slot } }
+    val maxTime = (slots.maxOfOrNull { it.averageTimeListened } ?: 0L).coerceAtLeast(1L)
+    val peakSlot = slots.maxByOrNull { it.averageTimeListened }?.takeIf { it.averageTimeListened > 0L }?.slot
+    val selectedSlot = remember(slots) { mutableIntStateOf(-1) }
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val containerColor = MaterialTheme.colorScheme.secondaryContainer
+    val insight =
+        peakSlot?.let { stringResource(R.string.stats_pattern_insight_day, weekdayPluralNames[it]) }
+            ?: stringResource(R.string.stats_pattern_no_history)
+    // The chip describes the highlighted (peak) bar only, comparing its month-to-date
+    // average against the monthly baseline; guarded so tiny baselines stay absolute.
+    val change =
+        peakSlot
+            ?.let { peak -> slotMap[peak] }
+            ?.let { slot ->
+                slot.monthToDateAverageTimeListened?.let { monthToDate ->
+                    formatAverageChange(monthToDate, slot.averageTimeListened)?.let { changeText ->
+                        stringResource(
+                            R.string.stats_pattern_peak_change,
+                            weekdayPluralNames[slot.slot],
+                            changeText,
+                        )
+                    }
+                }
+            }
+
+    ElevatedCard(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.elevatedCardColors(),
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(
+                text = stringResource(R.string.stats_listening_by_day),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.secondary,
+            )
+            PatternChartMeta(
+                insight = insight,
+                change = change,
+                periodLabel = stringResource(R.string.stats_pattern_avg_per_day),
+            )
+            val selected = slotMap[selectedSlot.intValue]
+            if (selected != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                PatternTooltip(
+                    text =
+                        stringResource(
+                            R.string.stats_pattern_tooltip_day,
+                            stringResource(dayLabels[selected.slot]),
+                            formatAverageListeningTime(selected.averageTimeListened),
+                            selected.occurrenceCount,
+                            weekdayPluralNames[selected.slot],
+                        ),
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                for (day in 0..6) {
+                    val slot = slotMap[day]
+                    val time = slot?.averageTimeListened ?: 0L
+                    val fraction = time.toFloat() / maxTime
+                    val isPeak = day == peakSlot
+                    val isSelected = day == selectedSlot.intValue
+                    val barColor = if (isPeak || isSelected) primaryColor else containerColor
+                    val animatedFraction by animateFloatAsState(
+                        targetValue = fraction,
+                        animationSpec = tween(400),
+                        label = "bar_$day",
+                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { selectedSlot.intValue = day }
+                                .padding(vertical = 4.dp),
+                    ) {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .width(24.dp)
+                                    .height(80.dp),
+                            contentAlignment = Alignment.BottomCenter,
+                        ) {
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .width(24.dp)
+                                        .height((80 * animatedFraction).dp.coerceAtLeast(2.dp))
+                                        .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                                        .background(barColor),
+                            )
+                        }
+                        Text(
+                            text = stringResource(dayLabels[day]),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isPeak || isSelected) primaryColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = if (isPeak || isSelected) FontWeight.Bold else FontWeight.Normal,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ListeningByHourChart(
+    slots: List<ListeningPatternSlot>,
+    modifier: Modifier = Modifier,
+) {
+    val formatter = remember { DateTimeFormatter.ofPattern("h a", Locale.getDefault()) }
+    val hourLabels = remember(formatter) { (0..23).map { LocalTime.of(it, 0).format(formatter) } }
+    val timeLabels = remember(formatter) { listOf(0, 6, 12, 18, 0).map { LocalTime.of(it, 0).format(formatter) } }
+    val slotMap = remember(slots) { slots.associateBy { it.slot } }
+    val maxTime = (slots.maxOfOrNull { it.averageTimeListened } ?: 0L).coerceAtLeast(1L)
+    val peakSlot = slots.maxByOrNull { it.averageTimeListened }?.takeIf { it.averageTimeListened > 0L }?.slot
+    val selectedSlot = remember(slots) { mutableIntStateOf(-1) }
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val containerColor = MaterialTheme.colorScheme.primaryContainer
+    val insight =
+        peakSlot?.let { stringResource(R.string.stats_pattern_insight_hour, hourLabels[it]) }
+            ?: stringResource(R.string.stats_pattern_no_history)
+    // The chip describes the highlighted (peak) hour only, comparing its month-to-date
+    // average against the monthly baseline; guarded so tiny baselines stay absolute.
+    val change =
+        peakSlot
+            ?.let { peak -> slotMap[peak] }
+            ?.let { slot ->
+                slot.monthToDateAverageTimeListened?.let { monthToDate ->
+                    formatAverageChange(monthToDate, slot.averageTimeListened)?.let { changeText ->
+                        stringResource(
+                            R.string.stats_pattern_peak_change,
+                            hourLabels[slot.slot],
+                            changeText,
+                        )
+                    }
+                }
+            }
+
+    ElevatedCard(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.elevatedCardColors(),
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(
+                text = stringResource(R.string.stats_listening_by_hour),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.secondary,
+            )
+            PatternChartMeta(
+                insight = insight,
+                change = change,
+                periodLabel = stringResource(R.string.stats_pattern_avg_per_hour),
+            )
+            val selected = slotMap[selectedSlot.intValue]
+            if (selected != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                PatternTooltip(
+                    text =
+                        stringResource(
+                            R.string.stats_pattern_tooltip_hour,
+                            hourLabels[selected.slot],
+                            formatAverageListeningTime(selected.averageTimeListened),
+                            selected.occurrenceCount,
+                        ),
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .pointerInput(slots) {
+                            detectTapGestures { offset ->
+                                val slotWidth = size.width.toFloat() / 24f
+                                selectedSlot.intValue = (offset.x / slotWidth).toInt().coerceIn(0, 23)
+                            }
+                        },
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                for (hour in 0..23) {
+                    val slot = slotMap[hour]
+                    val time = slot?.averageTimeListened ?: 0L
+                    val fraction = time.toFloat() / maxTime
+                    val isPeak = hour == peakSlot
+                    val isSelected = hour == selectedSlot.intValue
+                    val barColor =
+                        if (isPeak || isSelected) {
+                            primaryColor
+                        } else {
+                            containerColor.copy(alpha = 0.6f + fraction * 0.4f)
+                        }
+                    val animatedFraction by animateFloatAsState(
+                        targetValue = fraction,
+                        animationSpec = tween(400),
+                        label = "hour_$hour",
+                    )
+                    Box(
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        contentAlignment = Alignment.BottomCenter,
+                    ) {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 1.dp)
+                                    .height((48 * animatedFraction).dp.coerceAtLeast(2.dp))
+                                    .clip(RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp))
+                                    .background(barColor),
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                timeLabels.forEach { label ->
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Chip label for a preset window: months everywhere, except the twelve-month one, which reads
+ * better as a year and matches how the page-level range chips already word it.
+ */
+@Composable
+private fun CalendarRange.label(): String =
+    when (this) {
+        CalendarRange.TWELVE_MONTHS -> pluralStringResource(R.plurals.n_year, 1, 1)
+        else -> pluralStringResource(R.plurals.n_month, months, months)
+    }
+
+/**
+ * The calendar's own window picker: a chip naming the current preset that opens the rest. It
+ * lives on the card instead of borrowing the page-level range chips so the grid can be narrowed
+ * without disturbing the range every other chart on the screen is showing.
+ */
+@Composable
+private fun CalendarRangeChip(
+    selectedRange: CalendarRange,
+    onRangeSelected: (CalendarRange) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box(modifier = modifier) {
+        AssistChip(
+            onClick = { expanded = true },
+            label = { Text(selectedRange.label()) },
+            trailingIcon = {
+                Icon(
+                    painter = painterResource(R.drawable.expand_more),
+                    contentDescription = null,
+                )
+            },
+            shape = RoundedCornerShape(16.dp),
+            border = null,
+            colors =
+                AssistChipDefaults.assistChipColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    labelColor = MaterialTheme.colorScheme.onSurface,
+                ),
+        )
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            CalendarRange.entries.forEach { range ->
+                DropdownMenuItem(
+                    text = { Text(range.label()) },
+                    onClick = {
+                        expanded = false
+                        onRangeSelected(range)
+                    },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Listening calendar: one row per month in the selected window, one column per day of that
+ * month, shaded by how long the day was listened to. It answers a different question than the
+ * pattern charts above — those average habits per weekday/hour, this one shows the shape of
+ * the last stretch of listening: streaks, quiet weeks, and the one day that carried the month.
+ * The window is picked by the presets on the card itself, so the grid never has to render a
+ * whole year just to say what the last few weeks looked like.
+ */
+@Composable
+private fun StatsListeningCalendar(
+    calendar: ListeningCalendarData,
+    selectedRange: CalendarRange,
+    onRangeSelected: (CalendarRange) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val monthFormatter = remember { DateTimeFormatter.ofPattern("MMM", Locale.getDefault()) }
+    val monthYearFormatter = remember { DateTimeFormatter.ofPattern("MMM yyyy", Locale.getDefault()) }
+    val dayFormatter = remember { DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault()) }
+    val months =
+        remember(calendar.start, calendar.endInclusive) {
+            buildList {
+                var month = YearMonth.from(calendar.start)
+                val lastMonth = YearMonth.from(calendar.endInclusive)
+                while (!month.isAfter(lastMonth)) {
+                    add(month)
+                    month = month.plusMonths(1)
+                }
+            }
+        }
+    val byDate = remember(calendar.days) { calendar.days.associateBy { it.date } }
+    val peakTime = (calendar.days.maxOfOrNull { it.timeListened } ?: 0L).coerceAtLeast(1L)
+    var selectedDate by remember(calendar.days) { mutableStateOf<LocalDate?>(null) }
+
+    val emptyColor = MaterialTheme.colorScheme.surfaceContainerHighest
+    val outlineColor = MaterialTheme.colorScheme.outlineVariant
+    val accentColor = MaterialTheme.colorScheme.primary
+    // Quartile shading, GitHub-style: four steps between "a little" and the range's best day.
+    val levelColors =
+        remember(emptyColor, accentColor) {
+            listOf(
+                emptyColor,
+                accentColor.copy(alpha = 0.28f),
+                accentColor.copy(alpha = 0.52f),
+                accentColor.copy(alpha = 0.76f),
+                accentColor,
+            )
+        }
+    val labelStyle =
+        MaterialTheme.typography.labelSmall.copy(
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+        )
+    val textMeasurer = rememberTextMeasurer()
+
+    val rangeLabel =
+        remember(calendar.start, calendar.endInclusive, monthFormatter, monthYearFormatter) {
+            val startMonth = YearMonth.from(calendar.start)
+            val endMonth = YearMonth.from(calendar.endInclusive)
+            when {
+                startMonth == endMonth -> monthYearFormatter.format(calendar.endInclusive)
+                startMonth.year == endMonth.year ->
+                    "${monthFormatter.format(calendar.start)} – ${monthYearFormatter.format(calendar.endInclusive)}"
+
+                else ->
+                    "${monthYearFormatter.format(calendar.start)} – ${monthYearFormatter.format(calendar.endInclusive)}"
+            }
+        }
+    val activeDaysLabel =
+        pluralStringResource(R.plurals.stats_calendar_active_days, calendar.activeDays, calendar.activeDays)
+    val periodLabel =
+        if (calendar.longestStreak > 1) {
+            val streakLabel =
+                pluralStringResource(R.plurals.stats_calendar_streak, calendar.longestStreak, calendar.longestStreak)
+            "$activeDaysLabel · $streakLabel · $rangeLabel"
+        } else {
+            "$activeDaysLabel · $rangeLabel"
+        }
+    val insight =
+        calendar.bestDay?.let { best ->
+            stringResource(
+                R.string.stats_calendar_best_day,
+                "${dayFormatter.format(best.date)} · ${makeTimeString(best.timeListened)}",
+            )
+        } ?: stringResource(R.string.stats_calendar_no_history)
+
+    ElevatedCard(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.elevatedCardColors(),
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.stats_listening_calendar),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.secondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                CalendarRangeChip(
+                    selectedRange = selectedRange,
+                    onRangeSelected = onRangeSelected,
+                )
+            }
+            PatternChartMeta(
+                insight = insight,
+                change = null,
+                periodLabel = periodLabel,
+            )
+            val pinned = selectedDate
+            if (pinned != null) {
+                val selected = byDate[pinned]
+                Spacer(modifier = Modifier.height(8.dp))
+                PatternTooltip(
+                    text =
+                        if (selected == null) {
+                            stringResource(R.string.stats_calendar_tooltip_empty, dayFormatter.format(pinned))
+                        } else {
+                            stringResource(
+                                R.string.stats_calendar_tooltip,
+                                dayFormatter.format(selected.date),
+                                makeTimeString(selected.timeListened),
+                                pluralStringResource(R.plurals.n_time, selected.playCount, selected.playCount),
+                            )
+                        },
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            val weekFields = remember { WeekFields.of(Locale.getDefault()) }
+            // A day-per-column grid can only ever be as wide as the longest month it shows, so a
+            // window shorter than a year came out as a thin strip of tiny cells: 31 columns of
+            // about 9dp, one row per month. Anything up to half a year is laid out the other way
+            // round instead - a column per week, a row per weekday - which packs the same days
+            // into half the columns and so roughly doubles the cell. A year keeps the month-row
+            // grid: 53 week columns would come out smaller than the one it already has.
+            val gridWeeks =
+                remember(calendar.start, calendar.endInclusive, weekFields) {
+                    val gridStart = calendar.start.with(weekFields.dayOfWeek(), 1)
+                    val columns =
+                        ((calendar.endInclusive.toEpochDay() - gridStart.toEpochDay()) / 7L).toInt() + 1
+                    if (columns <= MAX_CALENDAR_WEEK_COLUMNS) gridStart to columns else null
+                }
+            if (gridWeeks != null) {
+                val (gridStart, columns) = gridWeeks
+                val weekdayLabels =
+                    remember(weekFields) {
+                        val locale = Locale.getDefault()
+                        (0..6).map { index ->
+                            weekFields.firstDayOfWeek
+                                .plus(index.toLong())
+                                .getDisplayName(TextStyle.SHORT, locale)
+                        }
+                    }
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    val labelWidth = 34.dp
+                    val gap = 2.dp
+                    val monthStrip = 18.dp
+                    val available = (maxWidth - labelWidth).coerceAtLeast(1.dp)
+                    val cellSize =
+                        ((available - gap * (columns - 1)) / columns)
+                            .coerceAtLeast(4.dp)
+                            .coerceAtMost(MAX_CALENDAR_WEEK_CELL)
+                    val step = cellSize + gap
+                    val density = LocalDensity.current
+                    val stepPx = with(density) { step.toPx() }
+                    val monthStripPx = with(density) { monthStrip.toPx() }
+                    Canvas(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .height(monthStrip + step * 7 - gap)
+                                .pointerInput(calendar.days, gridStart, columns, cellSize) {
+                                    detectTapGestures { offset ->
+                                        val column =
+                                            floor((offset.x - labelWidth.toPx()) / stepPx).toInt()
+                                        val row =
+                                            floor((offset.y - monthStripPx) / stepPx).toInt()
+                                        val tapped =
+                                            gridStart
+                                                .plusDays((column * 7 + row).toLong())
+                                                .takeIf {
+                                                    column in 0 until columns &&
+                                                        row in 0 until 7 &&
+                                                        !it.isBefore(calendar.start) &&
+                                                        !it.isAfter(calendar.endInclusive)
+                                                }
+                                        selectedDate =
+                                            if (tapped == null || tapped == selectedDate) null else tapped
+                                    }
+                                },
+                    ) {
+                        val cellPx = Size(cellSize.toPx(), cellSize.toPx())
+                        val corner = CornerRadius(cellSize.toPx() * 0.3f)
+                        val labelWidthPx = labelWidth.toPx()
+                        // Month names ride above the column their first day falls in, and take the
+                        // year along when the window crosses into a new one.
+                        months.forEach { month ->
+                            val firstDay = month.atDay(1).coerceAtLeast(calendar.start)
+                            val column = ((firstDay.toEpochDay() - gridStart.toEpochDay()) / 7L).toInt()
+                            val label =
+                                if (month.monthValue == 1) {
+                                    monthYearFormatter.format(month)
+                                } else {
+                                    monthFormatter.format(month)
+                                }
+                            val measured = textMeasurer.measure(label, labelStyle)
+                            drawText(
+                                textLayoutResult = measured,
+                                topLeft =
+                                    Offset(
+                                        x =
+                                            (labelWidthPx + column * stepPx)
+                                                .coerceIn(
+                                                    0f,
+                                                    (size.width - measured.size.width).coerceAtLeast(0f),
+                                                ),
+                                        y = 0f,
+                                    ),
+                            )
+                        }
+                        weekdayLabels.forEachIndexed { row, label ->
+                            val measured = textMeasurer.measure(label, labelStyle)
+                            drawText(
+                                textLayoutResult = measured,
+                                topLeft =
+                                    Offset(
+                                        x = (labelWidthPx - measured.size.width - 6.dp.toPx()).coerceAtLeast(0f),
+                                        y =
+                                            monthStripPx + row * stepPx +
+                                                (cellSize.toPx() - measured.size.height) / 2f,
+                                    ),
+                            )
+                        }
+                        var date = calendar.start
+                        while (!date.isAfter(calendar.endInclusive)) {
+                            val offsetDays = (date.toEpochDay() - gridStart.toEpochDay()).toInt()
+                            val x = labelWidthPx + (offsetDays / 7) * stepPx
+                            val y = monthStripPx + (offsetDays % 7) * stepPx
+                            val time = byDate[date]?.timeListened ?: 0L
+                            drawRoundRect(
+                                color = levelColors[calendarLevel(time, peakTime)],
+                                topLeft = Offset(x, y),
+                                size = cellPx,
+                                cornerRadius = corner,
+                            )
+                            if (date == selectedDate) {
+                                drawRoundRect(
+                                    color = outlineColor,
+                                    topLeft = Offset(x, y),
+                                    size = cellPx,
+                                    cornerRadius = corner,
+                                    style = Stroke(width = 1.5.dp.toPx()),
+                                )
+                            }
+                            date = date.plusDays(1)
+                        }
+                    }
+                }
+            } else {
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    val labelWidth = 34.dp
+                    val gap = 2.dp
+                    val maxDays = 31
+                    val available = (maxWidth - labelWidth).coerceAtLeast(1.dp)
+                    val cellSize = ((available - gap * (maxDays - 1)) / maxDays).coerceAtLeast(4.dp)
+                    Canvas(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .height(cellSize * months.size + gap * (months.size - 1).coerceAtLeast(0))
+                                .pointerInput(calendar.days, months, cellSize) {
+                                    detectTapGestures { offset ->
+                                        val step = cellSize.toPx() + gap.toPx()
+                                        val column = floor((offset.x - labelWidth.toPx()) / step).toInt()
+                                        val row = floor(offset.y / step).toInt()
+                                        val tapped =
+                                            months
+                                                .getOrNull(row)
+                                                ?.takeIf { column in 0 until it.lengthOfMonth() }
+                                                ?.atDay(column + 1)
+                                                ?.takeIf {
+                                                    !it.isBefore(calendar.start) && !it.isAfter(calendar.endInclusive)
+                                                }
+                                        selectedDate = if (tapped == null || tapped == selectedDate) null else tapped
+                                    }
+                                },
+                    ) {
+                        val step = cellSize.toPx() + gap.toPx()
+                        val cellPx = Size(cellSize.toPx(), cellSize.toPx())
+                        val corner = CornerRadius(cellSize.toPx() * 0.3f)
+                        val labelWidthPx = labelWidth.toPx()
+                        months.forEachIndexed { row, month ->
+                            val y = row * step
+                            for (day in 1..month.lengthOfMonth()) {
+                                val date = month.atDay(day)
+                                if (date.isBefore(calendar.start) || date.isAfter(calendar.endInclusive)) continue
+                                val time = byDate[date]?.timeListened ?: 0L
+                                val x = labelWidthPx + (day - 1) * step
+                                drawRoundRect(
+                                    color = levelColors[calendarLevel(time, peakTime)],
+                                    topLeft = Offset(x, y),
+                                    size = cellPx,
+                                    cornerRadius = corner,
+                                )
+                                if (date == selectedDate) {
+                                    drawRoundRect(
+                                        color = outlineColor,
+                                        topLeft = Offset(x, y),
+                                        size = cellPx,
+                                        cornerRadius = corner,
+                                        style = Stroke(width = 1.5.dp.toPx()),
+                                    )
+                                }
+                            }
+                            val measured = textMeasurer.measure(monthFormatter.format(month), labelStyle)
+                            drawText(
+                                textLayoutResult = measured,
+                                topLeft =
+                                    Offset(
+                                        x = (labelWidthPx - measured.size.width - 6.dp.toPx()).coerceAtLeast(0f),
+                                        y = y + (cellSize.toPx() - measured.size.height) / 2f,
+                                    ),
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.stats_calendar_legend_less),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                levelColors.forEach { color ->
+                    Box(
+                        modifier =
+                            Modifier
+                                .size(10.dp)
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(color),
+                    )
+                }
+                Text(
+                    text = stringResource(R.string.stats_calendar_legend_more),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * One insight line per pattern chart: the change chip when there is a trustworthy one,
+ * otherwise the plain insight text. The period caption rides along as a small subtitle.
+ */
+@Composable
+private fun PatternChartMeta(
+    insight: String,
+    change: String?,
+    periodLabel: String,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        if (change != null) {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            ) {
+                Text(
+                    text = change,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        } else {
+            Text(
+                text = insight,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Text(
+            text = periodLabel,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+        )
+    }
+}
+
+@Composable
+private fun PatternTooltip(text: String) {
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            style = MaterialTheme.typography.bodySmall,
+        )
+    }
+}
+
+/** Zero when the day has no plays, otherwise one of four shading steps against the peak day. */
+private fun calendarLevel(
+    timeListened: Long,
+    peakTime: Long,
+): Int {
+    if (timeListened <= 0L) return 0
+    val fraction = timeListened.toFloat() / peakTime.toFloat()
+    return when {
+        fraction >= 0.75f -> 4
+        fraction >= 0.50f -> 3
+        fraction >= 0.25f -> 2
+        else -> 1
+    }
+}
+
+private fun formatAverageListeningTime(durationMs: Long): String {
+    if (durationMs <= 0L) return "0 min"
+    val minutes = ((durationMs + 30_000L) / 60_000L).coerceAtLeast(1L)
+    return when {
+        minutes < 60L -> "$minutes min"
+        minutes % 60L == 0L -> "${minutes / 60L} hr"
+        else -> "${minutes / 60L} hr ${minutes % 60L} min"
+    }
+}
+
+/** Per-occurrence baselines below this are too small for a percentage to mean anything. */
+private const val MIN_RELIABLE_PERCENT_BASELINE_MS = 10 * 60_000L
+
+/**
+ * Compact change between two per-occurrence averages. Percentages are only shown when the
+ * previous average passes a minimum baseline (~10 min per occurrence); tiny baselines get
+ * an absolute delta instead, so "3 min → 11 min" never reads as a triumphant "+267%".
+ * Returns null when there is nothing meaningful to say.
+ */
+private fun formatAverageChange(current: Long, previous: Long): String? {
+    val delta = current - previous
+    if (delta == 0L) return null
+    val sign = if (delta > 0) "+" else "-"
+    val percent =
+        if (previous >= MIN_RELIABLE_PERCENT_BASELINE_MS) {
+            (delta.toDouble() * 100.0 / previous).roundToInt()
+        } else {
+            0
+        }
+    return if (abs(percent) >= 1) {
+        "$sign${abs(percent)}%"
+    } else {
+        "$sign${formatAverageListeningTime(abs(delta))}"
+    }
+}
+
+enum class OptionStats { WEEKS, MONTHS, YEARS, CONTINUOUS }

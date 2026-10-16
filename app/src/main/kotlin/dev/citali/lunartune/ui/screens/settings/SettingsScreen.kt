@@ -1,0 +1,711 @@
+/*
+ * AmaBeat (2026)
+ * © nastechresearch — github.com/nastechresearch
+ * GPL-3.0 License | Contributors: see git history
+ * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
+ */
+
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
+package dev.citali.amabeat.ui.screens.settings
+
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LargeFlexibleTopAppBar
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.request.ImageRequest
+import androidx.navigation.NavController
+import dev.citali.amabeat.BuildConfig
+import dev.citali.amabeat.LocalPlayerAwareWindowInsets
+import dev.citali.amabeat.R
+import dev.citali.amabeat.constants.AccountBannerSourceKey
+import dev.citali.amabeat.constants.AccountBannerUpdatedAtKey
+import dev.citali.amabeat.constants.AccountChannelHandleKey
+import dev.citali.amabeat.constants.AccountNameKey
+import dev.citali.amabeat.constants.AccountRowIdentityEnabledKey
+import dev.citali.amabeat.constants.AccountYouTubeBannerUrlKey
+import dev.citali.amabeat.constants.InnerTubeCookieKey
+import dev.citali.amabeat.constants.SettingsHeaderImageUriKey
+import dev.citali.amabeat.constants.SharedScreenHeaderImageUriKey
+import dev.citali.amabeat.ui.component.IconButton
+import dev.citali.amabeat.ui.component.ScreenImageHeader
+import dev.citali.amabeat.ui.utils.appBarScrollBehavior
+import dev.citali.amabeat.ui.utils.backToMain
+import dev.citali.amabeat.utils.Updater
+import dev.citali.amabeat.utils.rememberPreference
+import dev.citali.amabeat.viewmodels.HomeViewModel
+import moe.rukamori.archivetune.innertube.utils.hasYouTubeLoginCookie
+
+
+private fun searchableSettingsRoute(parentKey: String, scrollKey: String?): String? {
+    // Sub screens with a route of their own win over the parent screen, so
+    // searching "app lock" lands on the lock screen instead of the privacy one.
+    when (scrollKey) {
+        "app_lock", "biometric_lock" -> return "settings/app_lock"
+        "cross_service_import" -> return "settings/music_transfer"
+    }
+    val route =
+        when (parentKey) {
+            "account" -> "settings/account"
+            "appearance" -> "settings/appearance"
+            "playback" -> "settings/player"
+            "lyrics" -> "settings/lyrics"
+            "content" -> "settings/content"
+            "behavior" -> "settings/privacy"
+            "integration" -> "settings/integration"
+            "internet" -> "settings/internet"
+            "storage" -> "settings/storage"
+            "backup_restore" -> "settings/backup_restore"
+            "developer_options" -> "settings/misc"
+            "about" -> "settings/about"
+            "discord" -> "settings/discord"
+            "ai_integration" -> "settings/ai_integration"
+            else -> return null
+        }
+    return route
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsScreen(
+    navController: NavController,
+    latestVersionName: String,
+    onClearUpdateBadge: () -> Unit = {},
+) {
+    val context = LocalContext.current
+    val (sharedHeaderImageUri) = rememberPreference(SharedScreenHeaderImageUriKey, "")
+    val (settingsHeaderImageUri) = rememberPreference(SettingsHeaderImageUriKey, "")
+    val effectiveHeaderImageUri = settingsHeaderImageUri.ifBlank { sharedHeaderImageUri }
+    val (accountBannerSource) = rememberPreference(AccountBannerSourceKey, AccountBanner.SOURCE_YOUTUBE)
+    val (accountBannerUpdatedAt) = rememberPreference(AccountBannerUpdatedAtKey, 0L)
+    val (accountYouTubeBannerUrl) = rememberPreference(AccountYouTubeBannerUrlKey, "")
+    val (accountNamePreference) = rememberPreference(AccountNameKey, "")
+    val (accountChannelHandle) = rememberPreference(AccountChannelHandleKey, "")
+    val (accountRowIdentityEnabled) = rememberPreference(AccountRowIdentityEnabledKey, true)
+    val (innerTubeCookie) = rememberPreference(InnerTubeCookieKey, "")
+    val isAccountLoggedIn = remember(innerTubeCookie) { hasYouTubeLoginCookie(innerTubeCookie) }
+    val accountViewModel: HomeViewModel = hiltViewModel()
+    val accountNameFromViewModel by accountViewModel.accountName.collectAsStateWithLifecycle()
+    val accountImageUrl by accountViewModel.accountImageUrl.collectAsStateWithLifecycle()
+    val accountRowTitle = accountNameFromViewModel.ifBlank { accountNamePreference }
+    val accountRowBannerModel: Any? =
+        when (accountBannerSource) {
+            AccountBanner.SOURCE_CUSTOM ->
+                AccountBanner.customFile(context).takeIf { it.exists() }?.let { file ->
+                    ImageRequest.Builder(context)
+                        .data(file)
+                        .memoryCacheKey("settings_account_banner_$accountBannerUpdatedAt")
+                        .diskCacheKey("settings_account_banner_$accountBannerUpdatedAt")
+                        .build()
+                }
+            AccountBanner.SOURCE_YOUTUBE -> accountYouTubeBannerUrl.takeIf { it.isNotBlank() }
+            else -> null
+        }
+    val isAndroid12OrLater = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    val listState = rememberLazyListState()
+
+    val storagePermission =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_AUDIO
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+
+    val notificationPermission =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.POST_NOTIFICATIONS
+        } else {
+            null
+        }
+
+    var isStorageGranted by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, storagePermission) == PackageManager.PERMISSION_GRANTED,
+        )
+    }
+
+    var isNotificationGranted by remember {
+        mutableStateOf(
+            notificationPermission == null ||
+                ContextCompat.checkSelfPermission(context, notificationPermission) == PackageManager.PERMISSION_GRANTED,
+        )
+    }
+
+    val permissionLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestMultiplePermissions(),
+        ) { result ->
+            isStorageGranted = result[storagePermission] == true || isStorageGranted
+            if (notificationPermission != null) {
+                isNotificationGranted = result[notificationPermission] == true || isNotificationGranted
+            }
+        }
+
+    val scrollBehavior = appBarScrollBehavior()
+    val shouldShowPermissionHint = !isStorageGranted || !isNotificationGranted
+    val hasUpdate =
+        BuildConfig.UPDATER_AVAILABLE &&
+            Updater.isUpdateAvailable(latestVersionName, BuildConfig.VERSION_NAME)
+    var isUpdateDismissed by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    val settingsGroups = buildSettingsGroups(navController, isAndroid12OrLater, hasUpdate, context)
+    val filteredChildResults = remember(searchQuery, settingsGroups) {
+        if (searchQuery.isBlank()) emptyList()
+        else {
+            // Normalize the query: keep the raw trimmed string for substring
+            // matching, and also split on whitespace for per-word matching.
+            //
+            // MATCHING RULES (in priority order):
+            //   (a) The full query string is a substring of the title, any
+            //       keyword, or any parent token. Handles "scheduled backup"
+            //       verbatim against the "Scheduled backup" title.
+            //   (b) Each query word appears as a substring of AT LEAST ONE
+            //       token across the COMBINED set {title, keywords, parent
+            //       tokens}. Words do NOT all have to live in the same field.
+            //       This is what makes "low data mode", "scheduled backup
+            //       frequency", "discord rich presence activity", and other
+            //       2-, 3-, 4-word queries return results even when each word
+            //       lives in a different field (title vs keyword vs subtitle).
+            //   (c) Phrase fallback: if the joined query (with single spaces)
+            //       is a substring of the joined "all tokens" string, accept.
+            //       This catches typos and word-order differences like
+            //       "backup scheduled" matching "Scheduled backup".
+            val rawQuery = searchQuery.trim().lowercase()
+            val queryWords =
+                rawQuery.split("\\s+".toRegex())
+                    .filter { it.isNotBlank() }
+            if (queryWords.isEmpty()) emptyList()
+            else {
+                data class ScoredResult(
+                    val item: SearchResultItem,
+                    val score: Int, // higher = better match
+                )
+
+                val scored =
+                    settingsGroups.flatMap { group ->
+                        group.items.flatMap { item ->
+                            val parentTokens =
+                                buildList {
+                                    add(item.title.lowercase())
+                                    item.subtitle?.lowercase()?.let(::add)
+                                    addAll(item.keywords.map { it.lowercase() })
+                                }
+                            // Pre-join parent tokens once per parent for the phrase check.
+                            val parentJoined = parentTokens.joinToString(" ")
+                            // Pre-split parent tokens into individual words once so
+                            // the per-word prefix matcher (handles plural/singular and
+                            // partial-word queries like "config" matching "configuration")
+                            // doesn't re-split on every query word.
+                            val parentWords = parentTokens.flatMap { it.split(Regex("[\\s_\\-/.]+")) }.filter { it.isNotBlank() }
+
+                            val childResults =
+                                item.children.mapNotNull { child ->
+                                    val titleLower = child.title.lowercase()
+                                    val keywordTokens = child.keywords.map { it.lowercase() }
+                                    // The scrollKey (e.g. "scrobble_threshold") is itself a
+                                    // strong search signal — users may type the underscored
+                                    // form when looking for a specific setting. Normalize
+                                    // underscores/dashes to spaces so it tokenizes cleanly.
+                                    val scrollKeyTokens = buildList {
+                                        add(child.scrollKey.lowercase())
+                                        addAll(child.scrollKey.lowercase().split("_", "-", ".").filter { it.isNotBlank() })
+                                    }
+
+                                    // Combined token bucket for per-word matching.
+                                    // Each query word only needs to match ANY
+                                    // token in this combined set — they don't
+                                    // all have to be in the same field.
+                                    val combinedTokens = buildList {
+                                        add(titleLower)
+                                        addAll(keywordTokens)
+                                        addAll(scrollKeyTokens)
+                                        addAll(parentTokens)
+                                    }
+                                    // Pre-split into individual words for the prefix matcher.
+                                    val combinedWords = combinedTokens
+                                        .flatMap { it.split(Regex("[\\s_\\-/.]+")) }
+                                        .filter { it.isNotBlank() }
+
+                                    // (a) full-query substring match in any single field
+                                    val titleSubstr = titleLower.contains(rawQuery)
+                                    val keywordSubstr = keywordTokens.any { it.contains(rawQuery) }
+                                    val scrollKeySubstr = scrollKeyTokens.any { it.contains(rawQuery) }
+                                    val parentSubstr = parentTokens.any { it.contains(rawQuery) }
+
+                                    // (b) per-word: every query word appears as a
+                                    //     substring of at least one combined token.
+                                    //     PLUS a prefix-of-word match so plurals /
+                                    //     partial-word queries (e.g. "config" matching
+                                    //     "configuration", "images" matching "image")
+                                    //     still hit. This is the catch-all that makes
+                                    //     3- and 4-word queries return results even when
+                                    //     each word lives in a different field.
+                                    val allWordsMatchAnyField =
+                                        queryWords.all { q ->
+                                            titleLower.contains(q) ||
+                                                keywordTokens.any { it.contains(q) } ||
+                                                scrollKeyTokens.any { it.contains(q) } ||
+                                                parentTokens.any { it.contains(q) } ||
+                                                combinedWords.any { word -> word.startsWith(q) || q.startsWith(word) }
+                                        }
+
+                                    // (c) phrase fallback — joined query against
+                                    //     joined tokens (catches word-order swaps)
+                                    val combinedJoined = combinedTokens.joinToString(" ")
+                                    val phraseMatch = combinedJoined.contains(rawQuery)
+
+                                    // (b-legacy) all-words-in-same-field match — kept
+                                    // for scoring only (a higher score signal than the
+                                    // per-word across-fields match).
+                                    val titleAllWords =
+                                        queryWords.all { q -> titleLower.contains(q) }
+                                    val keywordAllWords =
+                                        queryWords.all { q -> keywordTokens.any { it.contains(q) } }
+                                    val parentAllWords =
+                                        queryWords.all { q -> parentTokens.any { it.contains(q) } }
+
+                                    val matches =
+                                        titleSubstr || keywordSubstr || scrollKeySubstr ||
+                                            parentSubstr || allWordsMatchAnyField ||
+                                            phraseMatch || titleAllWords ||
+                                            keywordAllWords || parentAllWords
+
+                                    if (!matches) null else {
+                                        // Relevance scoring — higher is better.
+                                        //   1000 = exact title match (case-insensitive)
+                                        //   900  = title starts with the full query
+                                        //   800  = title contains the full query as a substring
+                                        //   700  = any keyword equals the full query
+                                        //   600  = any keyword contains the full query
+                                        //   550  = all query words are in the title (any order)
+                                        //   500  = phrase match against combined tokens
+                                        //   450  = parent token contains the full query
+                                        //   400  = all query words are in the keywords (same field)
+                                        //   350  = all query words are in the parent tokens (same field)
+                                        //   300  = every query word matches some token across fields
+                                        //   100  = partial match (shouldn't happen given above)
+                                        val score = when {
+                                            titleLower == rawQuery -> 1000
+                                            titleLower.startsWith(rawQuery) -> 900
+                                            titleSubstr -> 800
+                                            keywordTokens.any { it == rawQuery } -> 700
+                                            keywordSubstr -> 600
+                                            titleAllWords -> 550
+                                            phraseMatch -> 500
+                                            parentSubstr -> 450
+                                            keywordAllWords -> 400
+                                            parentAllWords -> 350
+                                            allWordsMatchAnyField -> 300
+                                            else -> 100
+                                        }
+                                        ScoredResult(
+                                            item = SearchResultItem(
+                                                title = child.title,
+                                                parentTitle = item.title,
+                                                parentIcon = item.icon,
+                                                parentKey = item.key,
+                                                parentAccentColor = item.accentColor,
+                                                parentRoute = searchableSettingsRoute(item.key, child.scrollKey),
+                                                scrollKey = child.scrollKey,
+                                                onClick = item.onClick,
+                                                switchControl = child.switchControl,
+                                            ),
+                                            score = score,
+                                        )
+                                    }
+                                }
+
+                            if (childResults.isNotEmpty()) {
+                                childResults
+                            } else {
+                                // If the parent matches but has no matching
+                                // children, show the parent itself as a single
+                                // result so top-level items (e.g. "Statistics",
+                                // "Language packs", "PO Token") remain searchable
+                                // even when they have no children to match against.
+                                val parentSubstr = parentTokens.any { it.contains(rawQuery) }
+                                val parentAllWords =
+                                    queryWords.all { q ->
+                                        parentTokens.any { it.contains(q) } ||
+                                            parentWords.any { word -> word.startsWith(q) || q.startsWith(word) }
+                                    }
+                                val parentPhraseMatch = parentJoined.contains(rawQuery)
+                                if (parentSubstr || parentAllWords || parentPhraseMatch) {
+                                    val score = when {
+                                        item.title.lowercase() == rawQuery -> 1000
+                                        item.title.lowercase().startsWith(rawQuery) -> 900
+                                        parentSubstr -> 400
+                                        parentPhraseMatch -> 300
+                                        else -> 200
+                                    }
+                                    listOf(
+                                        ScoredResult(
+                                            item = SearchResultItem(
+                                                title = item.title,
+                                                parentTitle = item.subtitle ?: "",
+                                                parentIcon = item.icon,
+                                                parentKey = item.key,
+                                                parentAccentColor = item.accentColor,
+                                                parentRoute = null,
+                                                scrollKey = null,
+                                                onClick = item.onClick,
+                                            ),
+                                            score = score,
+                                        ),
+                                    )
+                                } else {
+                                    emptyList()
+                                }
+                            }
+                        }
+                    }
+
+                // Sort by score descending so the best match is at the top.
+                // Stable sort preserves screen-order within a score tier.
+                scored.sortedByDescending { it.score }.map { it.item }
+            }
+        }
+    }
+    val filteredGroups = remember(searchQuery, settingsGroups) {
+        if (searchQuery.isBlank()) {
+            settingsGroups.map { group ->
+                group.copy(items = group.items.filterNot { it.hidden })
+            }.filter { it.items.isNotEmpty() }
+        } else {
+            emptyList()
+        }
+    }
+    val visibleGroups = filteredGroups
+    val collapseThresholdPx = with(LocalDensity.current) { 150.dp.roundToPx() }
+    val imageHeaderCollapsed =
+        effectiveHeaderImageUri.isNotBlank() &&
+            searchQuery.isBlank() &&
+            (listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > collapseThresholdPx)
+
+    Scaffold(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        topBar = {
+            if (effectiveHeaderImageUri.isBlank() || searchQuery.isNotBlank()) {
+                LargeFlexibleTopAppBar(
+                    title = {
+                        Text(
+                            text = stringResource(R.string.settings),
+                            fontWeight = FontWeight.Bold,
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(
+                            onClick = navController::navigateUp,
+                            onLongClick = navController::backToMain,
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.arrow_back),
+                                contentDescription = stringResource(R.string.back_button_desc),
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.largeTopAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    ),
+                    scrollBehavior = scrollBehavior,
+                )
+            }
+        },
+    ) { innerPadding ->
+        androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = listState,
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .windowInsetsPadding(
+                        LocalPlayerAwareWindowInsets.current.only(
+                            WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
+                        ),
+                    ),
+            contentPadding =
+                PaddingValues(
+                    top = innerPadding.calculateTopPadding(),
+                    bottom = SettingsDimensions.ScreenBottomPadding,
+                ),
+        ) {
+            if (effectiveHeaderImageUri.isNotBlank() && searchQuery.isBlank()) {
+                item(key = "settings_image_header", contentType = "image_header") {
+                    ScreenImageHeader(
+                        imageUri = effectiveHeaderImageUri,
+                                blendColor = MaterialTheme.colorScheme.surface,
+                    ) {
+                        IconButton(
+                            onClick = navController::navigateUp,
+                            onLongClick = navController::backToMain,
+                            modifier = Modifier.align(Alignment.TopStart).padding(start = 28.dp, top = 46.dp),
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.arrow_back),
+                                contentDescription = stringResource(R.string.back_button_desc),
+                                tint = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                        Text(
+                            text = stringResource(R.string.settings),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.displaySmall,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.align(Alignment.BottomStart).padding(horizontal = 24.dp, vertical = 32.dp),
+                        )
+                    }
+                }
+            }
+            if (hasUpdate && !isUpdateDismissed) {
+                item(key = "update", contentType = "settings_banner") {
+                    SettingsUpdateBanner(
+                        latestVersion = latestVersionName,
+                        onClick = { navController.navigate("settings/update") },
+                        onDismiss = { isUpdateDismissed = true },
+                        modifier =
+                            Modifier
+                                .padding(horizontal = SettingsDimensions.ScreenHorizontalPadding)
+                                .padding(bottom = SettingsDimensions.SectionSpacing),
+                    )
+                }
+            }
+
+            if (shouldShowPermissionHint) {
+                item(key = "permission", contentType = "settings_banner") {
+                    SettingsPermissionBanner(
+                        onRequestPermission = {
+                            val toRequest =
+                                buildList {
+                                    if (!isStorageGranted) add(storagePermission)
+                                    if (!isNotificationGranted && notificationPermission != null) {
+                                        add(notificationPermission)
+                                    }
+                                }
+                            if (toRequest.isNotEmpty()) {
+                                permissionLauncher.launch(toRequest.toTypedArray())
+                            }
+                        },
+                        modifier =
+                            Modifier
+                                .padding(horizontal = SettingsDimensions.ScreenHorizontalPadding)
+                                .padding(bottom = SettingsDimensions.SectionSpacing),
+                    )
+                }
+            }
+
+            item(key = "search_bar", contentType = "search_bar") {
+                TextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = {
+                        Text(
+                            text = stringResource(R.string.search_settings),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(R.drawable.search),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(28.dp),
+                    colors =
+                        TextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                            unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                        ),
+                    modifier =
+                        Modifier
+                            .padding(horizontal = SettingsDimensions.SegmentedGroupHorizontalPadding)
+                            .fillMaxWidth(),
+                )
+            }
+
+            item(key = "search_spacing", contentType = "spacing") {
+                Spacer(modifier = Modifier.height(SettingsDimensions.SectionSpacing))
+            }
+
+            if (searchQuery.isNotBlank() && filteredChildResults.isNotEmpty()) {
+                itemsIndexed(
+                    items = filteredChildResults,
+                    key = { index, result -> result.parentKey + ":" + result.title + ":" + index },
+                    contentType = { _, _ -> "search_result" },
+                ) { _, result ->
+                    SettingsSearchResultItem(
+                        result = result,
+                        onClick = {
+                            result.parentRoute?.let(navController::navigate) ?: result.onClick()
+                        },
+                        modifier = Modifier.padding(
+                            horizontal = SettingsDimensions.SegmentedGroupHorizontalPadding,
+                            vertical = 4.dp,
+                        ),
+                    )
+                }
+            } else if (searchQuery.isNotBlank()) {
+                item(key = "no_results") {
+                    Text(
+                        text = stringResource(R.string.no_results_found),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(
+                            horizontal = SettingsDimensions.SegmentedGroupHorizontalPadding,
+                            vertical = 16.dp,
+                        ),
+                    )
+                }
+            } else {
+            visibleGroups.forEachIndexed { groupIndex, group ->
+                if (groupIndex > 0) {
+                    item(
+                        key = "settings_group_spacing_$groupIndex",
+                        contentType = "settings_group_spacing",
+                    ) {
+                        Spacer(modifier = Modifier.height(SettingsDimensions.SectionSpacing))
+                    }
+                }
+
+                itemsIndexed(
+                    items = group.items,
+                    key = { _, item -> item.key },
+                    contentType = { _, _ -> "settings_segment" },
+                ) { index, settingsItem ->
+                    val isAccountRow = settingsItem.key == "account"
+                    SettingsSegmentedItem(
+                        item = settingsItem,
+                        index = index,
+                        count = group.items.size,
+                        backgroundModel =
+                            accountRowBannerModel.takeIf {
+                                accountRowIdentityEnabled && isAccountRow && isAccountLoggedIn
+                            },
+                        iconImageModel =
+                            accountImageUrl.takeIf {
+                                accountRowIdentityEnabled &&
+                                    isAccountRow &&
+                                    isAccountLoggedIn &&
+                                    !it.isNullOrBlank()
+                            },
+                        titleOverride =
+                            accountRowTitle.takeIf {
+                                accountRowIdentityEnabled &&
+                                    isAccountRow &&
+                                    isAccountLoggedIn &&
+                                    it.isNotBlank()
+                            },
+                        subtitleOverride =
+                            accountChannelHandle.takeIf {
+                                accountRowIdentityEnabled &&
+                                    isAccountRow &&
+                                    isAccountLoggedIn &&
+                                    it.isNotBlank()
+                            },
+                        modifier =
+                            Modifier
+                                .padding(horizontal = SettingsDimensions.SegmentedGroupHorizontalPadding)
+                                .padding(
+                                    bottom =
+                                        if (index < group.items.lastIndex) {
+                                            SettingsDimensions.SegmentedItemGap
+                                        } else {
+                                            0.dp
+                                        },
+                                ),
+                    )
+                }
+            }
+            }
+        }
+
+        AnimatedVisibility(
+            visible = imageHeaderCollapsed,
+            enter = fadeIn(tween(220)) + slideInVertically(tween(260)) { -it },
+            exit = fadeOut(tween(160)) + slideOutVertically(tween(220)) { -it },
+            modifier = Modifier.align(Alignment.TopCenter),
+        ) {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = stringResource(R.string.settings),
+                        fontWeight = FontWeight.Bold,
+                    )
+                },
+                navigationIcon = {
+                    IconButton(
+                        onClick = navController::navigateUp,
+                        onLongClick = navController::backToMain,
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.arrow_back),
+                            contentDescription = stringResource(R.string.back_button_desc),
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surface,
+                ),
+            )
+        }
+        }
+    }
+}

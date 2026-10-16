@@ -1,0 +1,617 @@
+/*
+ * AmaBeat (2026)
+ * © nastechresearch — github.com/nastechresearch
+ * GPL-3.0 License | Contributors: see git history
+ * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
+ */
+
+package dev.citali.amabeat.ui.screens.library
+
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
+import androidx.core.graphics.toColorInt
+import androidx.navigation.NavController
+import kotlinx.coroutines.launch
+import dev.citali.amabeat.LocalDatabase
+import dev.citali.amabeat.R
+import dev.citali.amabeat.constants.AppBarHeight
+import dev.citali.amabeat.constants.ChipSortTypeKey
+import dev.citali.amabeat.constants.DefaultLibraryFilterOrderPreference
+import dev.citali.amabeat.constants.DisableBlurKey
+import dev.citali.amabeat.constants.HomeHeaderImageUriKey
+import dev.citali.amabeat.constants.SharedScreenHeaderImageUriKey
+import dev.citali.amabeat.constants.LibraryChipOrderKey
+import dev.citali.amabeat.constants.LibraryFilter
+import dev.citali.amabeat.constants.PlaylistTagOrderKey
+import dev.citali.amabeat.constants.ShowSpotifyPlaylistsKey
+import dev.citali.amabeat.constants.ShowTagsInLibraryKey
+import dev.citali.amabeat.constants.toLibraryFilterOrder
+import dev.citali.amabeat.constants.toPlaylistTagOrder
+import dev.citali.amabeat.db.entities.TagEntity
+import dev.citali.amabeat.ui.component.TagsManagementDialog
+import dev.citali.amabeat.ui.component.ScreenImageHeader
+import dev.citali.amabeat.utils.rememberEnumPreference
+import dev.citali.amabeat.utils.rememberPreference
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LibraryScreen(
+    navController: NavController,
+    scrollBehavior: TopAppBarScrollBehavior,
+) {
+    val defaultFilter by rememberEnumPreference(ChipSortTypeKey, LibraryFilter.LIBRARY)
+    val database = LocalDatabase.current
+    val (selectedTagIds, onSelectedTagIdsChange) = rememberPlaylistTagFilterState(database)
+    val allTags by database.allTags().collectAsState(initial = emptyList())
+    val (showTagsInLibrary) = rememberPreference(ShowTagsInLibraryKey, defaultValue = true)
+    val (showSpotifyPlaylists) = rememberPreference(ShowSpotifyPlaylistsKey, defaultValue = false)
+    val (disableBlur) = rememberPreference(DisableBlurKey, false)
+    val (sharedHeaderImageUri) = rememberPreference(SharedScreenHeaderImageUriKey, "")
+    val (homeHeaderImageUri) = rememberPreference(HomeHeaderImageUriKey, "")
+    val effectiveHeaderImageUri = homeHeaderImageUri.ifBlank { sharedHeaderImageUri }
+    val (libraryChipOrderPreference) =
+        rememberPreference(
+            LibraryChipOrderKey,
+            defaultValue = DefaultLibraryFilterOrderPreference,
+        )
+    val (playlistTagOrderPreference) = rememberPreference(PlaylistTagOrderKey, defaultValue = "")
+    var showTagsManagementDialog by rememberSaveable { mutableStateOf(false) }
+    val activeSelectedTagIds = if (showTagsInLibrary) selectedTagIds else emptySet()
+    val orderedTags =
+        remember(allTags, playlistTagOrderPreference) {
+            val tagsById = allTags.associateBy(TagEntity::id)
+            playlistTagOrderPreference
+                .toPlaylistTagOrder(allTags.map(TagEntity::id))
+                .mapNotNull { tagId -> tagsById[tagId] }
+        }
+    val libraryFilters =
+        remember(showSpotifyPlaylists, libraryChipOrderPreference) {
+            libraryChipOrderPreference
+                .toLibraryFilterOrder()
+                .filter { filter -> showSpotifyPlaylists || filter != LibraryFilter.SPOTIFY }
+        }
+
+    if (showTagsManagementDialog) {
+        TagsManagementDialog(
+            onDismiss = { showTagsManagementDialog = false },
+        )
+    }
+
+    val pagerState =
+        rememberPagerState(
+            initialPage = libraryFilters.indexOf(defaultFilter).takeIf { it >= 0 } ?: 0,
+        ) { libraryFilters.size }
+
+    val currentFilter = libraryFilters.getOrElse(pagerState.targetPage) { LibraryFilter.LIBRARY }
+
+    val density = LocalDensity.current
+    var shellHeightPx by remember { mutableStateOf(0) }
+    val pageTopPad =
+        if (shellHeightPx == 0) {
+            WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + AppBarHeight + 64.dp + 4.dp
+        } else {
+            with(density) { shellHeightPx.toDp() } + 4.dp
+        }
+    val configuration = LocalConfiguration.current
+    val tonalStart = MaterialTheme.colorScheme.primaryContainer
+    val tonalMiddle = MaterialTheme.colorScheme.secondaryContainer
+    val tabListState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+
+    Box(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .clipToBounds()
+                .background(MaterialTheme.colorScheme.background),
+    ) {
+        if (effectiveHeaderImageUri.isNotBlank()) {
+            ScreenImageHeader(
+                imageUri = effectiveHeaderImageUri,
+                blendColor = MaterialTheme.colorScheme.background,
+                // The banner leads the scroll as the first item of every
+                // page (rukamori shell, adapted): nothing stays pinned.
+                modifier = Modifier.align(Alignment.TopCenter),
+            )
+        } else if (!disableBlur) {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(430.dp)
+                        .align(Alignment.TopCenter)
+                        .drawWithCache {
+                            val brush =
+                                Brush.verticalGradient(
+                                    0f to tonalStart.copy(alpha = 0.30f),
+                                    0.42f to tonalMiddle.copy(alpha = 0.14f),
+                                    1f to Color.Transparent,
+                                )
+                            onDrawBehind { drawRect(brush) }
+                        },
+            )
+        }
+            LaunchedEffect(defaultFilter, libraryFilters) {
+                val selectedFilter = defaultFilter.takeIf { it in libraryFilters } ?: LibraryFilter.LIBRARY
+                val selectedPage = libraryFilters.indexOf(selectedFilter).takeIf { it >= 0 } ?: 0
+                if (pagerState.currentPage != selectedPage) {
+                    pagerState.scrollToPage(selectedPage)
+                }
+            }
+
+            // Sync Pager -> Preference & lazy list centering
+            LaunchedEffect(pagerState.settledPage, libraryFilters) {
+                // public setter clamps to the limit, same effect
+                scrollBehavior.state.heightOffset = 0f
+                val targetPage = pagerState.settledPage.coerceIn(0, libraryFilters.lastIndex)
+                val targetFilter = libraryFilters.getOrElse(targetPage) { LibraryFilter.LIBRARY }
+
+                // Centering the tab chip scroll alignment
+                val tabWidth =
+                    when (targetFilter) {
+                        LibraryFilter.LIBRARY -> 116.dp
+                        LibraryFilter.PLAYLISTS -> 132.dp
+                        LibraryFilter.SPOTIFY -> 168.dp
+                        LibraryFilter.SONGS -> 102.dp
+                        LibraryFilter.ARTISTS -> 116.dp
+                        LibraryFilter.ALBUMS -> 110.dp
+                        else -> 116.dp
+                    }
+                val screenWidth = configuration.screenWidthDp.dp
+                val targetOffsetDp = (screenWidth - tabWidth) / 2
+                val targetOffsetPx = with(density) { targetOffsetDp.roundToPx() }
+
+                tabListState.animateScrollToItem(targetPage, scrollOffset = -targetOffsetPx)
+            }
+
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize(),
+        ) { page ->
+                when (libraryFilters.getOrElse(page) { LibraryFilter.LIBRARY }) {
+                    LibraryFilter.LIBRARY -> {
+                        LibraryMixScreen(
+                            navController = navController,
+                            topContentPadding = pageTopPad,
+                            filterContent =
+                                if (showTagsInLibrary) {
+                                    {
+                                        PlaylistTagFilterRow(
+                                            tags = orderedTags,
+                                            selectedTagIds = selectedTagIds,
+                                            onSelectedTagIdsChange = onSelectedTagIdsChange,
+                                            onManageTagsClick = { showTagsManagementDialog = true },
+                                        )
+                                    }
+                                } else {
+                                    null
+                                },
+                            selectedTagIds = activeSelectedTagIds,
+                            onTabSelected = { targetFilter ->
+                                coroutineScope.launch {
+                                    val targetPage = libraryFilters.indexOf(targetFilter)
+                                    pagerState.animateScrollToPage(targetPage.takeIf { it >= 0 } ?: 0)
+                                }
+                            },
+                        )
+                    }
+
+                    LibraryFilter.PLAYLISTS -> {
+                        LibraryPlaylistsScreen(
+                            navController = navController,
+                            topContentPadding = pageTopPad,
+                            filterContent =
+                                if (showTagsInLibrary) {
+                                    {
+                                        PlaylistTagFilterRow(
+                                            tags = orderedTags,
+                                            selectedTagIds = selectedTagIds,
+                                            onSelectedTagIdsChange = onSelectedTagIdsChange,
+                                            onManageTagsClick = { showTagsManagementDialog = true },
+                                        )
+                                    }
+                                } else {
+                                    null
+                                },
+                            selectedTagIds = activeSelectedTagIds,
+                        )
+                    }
+
+                    LibraryFilter.SPOTIFY -> {
+                        LibrarySpotifyPlaylistsScreen(
+                            navController = navController,
+                            topContentPadding = pageTopPad,
+                        )
+                    }
+
+                    LibraryFilter.SONGS -> {
+                        LibrarySongsScreen(
+                            navController = navController,
+                            topContentPadding = pageTopPad,
+                            onDeselect = {
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(0)
+                                }
+                            },
+                        )
+                    }
+
+                    LibraryFilter.ARTISTS -> {
+                        LibraryArtistsScreen(
+                            navController = navController,
+                            topContentPadding = pageTopPad,
+                            onDeselect = {
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(0)
+                                }
+                            },
+                        )
+                    }
+
+                    LibraryFilter.ALBUMS -> {
+                        LibraryAlbumsScreen(
+                            navController = navController,
+                            topContentPadding = pageTopPad,
+                            onDeselect = {
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(0)
+                                }
+                            },
+                        )
+                    }
+                }
+                }
+
+
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .onSizeChanged { shellHeightPx = it.height }
+                    // Ride the shared header slide: the chips leave with the
+                    // top bar on scroll down and return with it on scroll up.
+                    .offset { IntOffset(0, scrollBehavior.state.heightOffset.roundToInt()) }
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(top = AppBarHeight),
+        ) {
+            LazyRow(
+                state = tabListState,
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                contentPadding = PaddingValues(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                    items(
+                        items = libraryFilters,
+                        key = { filter -> filter.name },
+                        contentType = { "library_filter_chip" },
+                    ) { filter ->
+                        val page = libraryFilters.indexOf(filter)
+                        val label =
+                            when (filter) {
+                                LibraryFilter.LIBRARY -> stringResource(R.string.filter_library)
+                                LibraryFilter.PLAYLISTS -> stringResource(R.string.playlists)
+                                LibraryFilter.SPOTIFY -> stringResource(R.string.spotify_playlists)
+                                LibraryFilter.SONGS -> stringResource(R.string.songs)
+                                LibraryFilter.ARTISTS -> stringResource(R.string.artists)
+                                LibraryFilter.ALBUMS -> stringResource(R.string.albums)
+                            }
+                        val iconRes =
+                            when (filter) {
+                                LibraryFilter.LIBRARY -> R.drawable.graphic_eq
+                                LibraryFilter.PLAYLISTS -> R.drawable.queue_music
+                                LibraryFilter.SPOTIFY -> R.drawable.spotify_icon
+                                LibraryFilter.SONGS -> R.drawable.music_note
+                                LibraryFilter.ARTISTS -> R.drawable.person
+                                LibraryFilter.ALBUMS -> R.drawable.album
+                            }
+                        ExpressiveTabChip(
+                            label = label,
+                            iconRes = iconRes,
+                            selected = currentFilter == filter,
+                            onClick = {
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(page)
+                                }
+                            },
+                        )
+                    }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlaylistTagFilterRow(
+    tags: List<TagEntity>,
+    selectedTagIds: Set<String>,
+    onSelectedTagIdsChange: (Set<String>) -> Unit,
+    onManageTagsClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    LazyRow(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+        contentPadding = PaddingValues(horizontal = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        item(key = "all_playlist_tags", contentType = "playlist_tag_filter_action") {
+            PlaylistTagFilterChip(
+                label = stringResource(R.string.filter_all),
+                selected = selectedTagIds.isEmpty(),
+                iconRes = R.drawable.filter_alt,
+                onClick = { onSelectedTagIdsChange(emptySet()) },
+            )
+        }
+
+        items(
+            items = tags,
+            key = TagEntity::id,
+            contentType = { "playlist_tag_filter" },
+        ) { tag ->
+            PlaylistTagFilterChip(
+                label = tag.name,
+                selected = tag.id in selectedTagIds,
+                accentColor =
+                    remember(tag.color) {
+                        runCatching { Color(tag.color.toColorInt()) }.getOrDefault(Color.Unspecified)
+                    },
+                onClick = {
+                    val nextSelection =
+                        if (tag.id in selectedTagIds) {
+                            selectedTagIds - tag.id
+                        } else {
+                            selectedTagIds + tag.id
+                        }
+                    onSelectedTagIdsChange(nextSelection)
+                },
+            )
+        }
+
+        item(key = "manage_playlist_tags", contentType = "playlist_tag_filter_action") {
+            PlaylistTagFilterChip(
+                label = stringResource(R.string.manage_tags),
+                selected = false,
+                iconRes = R.drawable.add,
+                onClick = onManageTagsClick,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PlaylistTagFilterChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    iconRes: Int? = null,
+    accentColor: Color = MaterialTheme.colorScheme.primary,
+) {
+    val resolvedAccentColor =
+        if (accentColor == Color.Unspecified) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            accentColor
+        }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue =
+            if (isPressed) {
+                0.92f
+            } else if (selected) {
+                1.05f
+            } else {
+                1.0f
+            },
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "PlaylistTagFilterChipScale",
+    )
+    val containerColor by animateColorAsState(
+        targetValue =
+            if (selected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            },
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        label = "PlaylistTagFilterChipContainerColor",
+    )
+    val contentColor by animateColorAsState(
+        targetValue =
+            if (selected) {
+                MaterialTheme.colorScheme.onPrimary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        label = "PlaylistTagFilterChipContentColor",
+    )
+
+    Row(
+        modifier =
+            modifier
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }.heightIn(min = 48.dp)
+                .clip(CircleShape)
+                .background(containerColor)
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick,
+                ).padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        if (iconRes != null) {
+            Icon(
+                painter = painterResource(id = iconRes),
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+        } else {
+            Box(
+                modifier =
+                    Modifier
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(if (selected) contentColor else resolvedAccentColor),
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+        }
+
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = contentColor,
+        )
+    }
+}
+
+@Composable
+fun ExpressiveTabChip(
+    label: String,
+    iconRes: Int,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        label = "TabChipScale",
+    )
+
+    val bgColor by animateColorAsState(
+        targetValue =
+            if (selected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            },
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        label = "TabChipBgColor",
+    )
+
+    val contentColor by animateColorAsState(
+        targetValue =
+            if (selected) {
+                MaterialTheme.colorScheme.onPrimary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        label = "TabChipContentColor",
+    )
+
+    Row(
+        modifier =
+            Modifier
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }.clip(CircleShape)
+                .background(bgColor)
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick,
+                ).padding(horizontal = 18.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        Icon(
+            painter = painterResource(id = iconRes),
+            contentDescription = label,
+            tint = contentColor,
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = label,
+            style =
+                MaterialTheme.typography.labelLarge.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp,
+                ),
+            color = contentColor,
+        )
+    }
+}

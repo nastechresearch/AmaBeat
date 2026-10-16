@@ -1,0 +1,1156 @@
+/*
+ * AmaBeat (2026)
+ * © nastechresearch — github.com/nastechresearch
+ * GPL-3.0 License | Contributors: see git history
+ * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
+ */
+
+package dev.citali.amabeat.utils
+
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.withContext
+import dev.citali.amabeat.constants.InnerTubeCookieKey
+import dev.citali.amabeat.constants.SelectedYtmPlaylistsKey
+import dev.citali.amabeat.constants.YtmSyncKey
+import dev.citali.amabeat.db.MusicDatabase
+import dev.citali.amabeat.db.entities.ArtistEntity
+import dev.citali.amabeat.db.entities.Playlist
+import dev.citali.amabeat.db.entities.PlaylistEntity
+import dev.citali.amabeat.db.entities.PlaylistSongMap
+import dev.citali.amabeat.db.entities.Song
+import dev.citali.amabeat.db.entities.SongEntity
+import moe.rukamori.archivetune.innertube.YouTube
+import moe.rukamori.archivetune.innertube.models.AlbumItem
+import moe.rukamori.archivetune.innertube.models.ArtistItem
+import moe.rukamori.archivetune.innertube.models.PlaylistItem
+import moe.rukamori.archivetune.innertube.models.SongItem
+import moe.rukamori.archivetune.innertube.models.distinctByPlaylistEntry
+import moe.rukamori.archivetune.innertube.pages.PlaylistContinuationPage
+import moe.rukamori.archivetune.innertube.pages.PlaylistPage
+import moe.rukamori.archivetune.innertube.utils.completed
+import moe.rukamori.archivetune.innertube.utils.hasYouTubeLoginCookie
+import dev.citali.amabeat.models.MediaMetadata
+import dev.citali.amabeat.models.toMediaMetadata
+import timber.log.Timber
+import java.time.LocalDateTime
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class SyncUtils
+    @Inject
+    constructor(
+        private val database: MusicDatabase,
+        @ApplicationContext private val context: Context,
+    ) {
+        private val syncScope = CoroutineScope(Dispatchers.IO)
+        private val syncEnabled = MutableStateFlow(true)
+        private val syncGeneration = AtomicLong(0L)
+
+        private val syncMutex = Mutex()
+        private val playlistSyncMutex = Mutex()
+        private val dbWriteSemaphore = Semaphore(2)
+        private val likedSyncMaxPages = 500
+        private val likedSyncContinuationAttempts = 3
+        private val likedSyncContinuationRetryMs = 1_000L
+
+        init {
+            syncScope.launch {
+                context.dataStore.data
+                    .map { it[YtmSyncKey] ?: true }
+                    .distinctUntilChanged()
+                    .collect { enabled ->
+                        syncEnabled.value = enabled
+                        if (!enabled) {
+                            syncGeneration.incrementAndGet()
+                        }
+                    }
+            }
+        }
+
+        suspend fun performFullSync(authoritative: Boolean = false) =
+            withContext(Dispatchers.IO) {
+                if (authoritative) {
+                    syncGeneration.incrementAndGet()
+                    syncMutex.lock()
+                } else if (!syncMutex.tryLock()) {
+                    Timber.d("Sync already in progress, skipping")
+                    return@withContext
+                }
+
+                try {
+                    if (!isLoggedIn()) {
+                        Timber.w("Skipping full sync - user not logged in")
+                        return@withContext
+                    }
+                    if (!isYtmSyncEnabled()) {
+                        Timber.w("Skipping full sync - sync disabled")
+                        return@withContext
+                    }
+
+                    supervisorScope {
+                        syncLikedSongs(authoritative = authoritative)
+                        syncLibrarySongs(authoritative = authoritative)
+
+                        listOf(
+                            async { syncLikedAlbums(authoritative = authoritative) },
+                            async { syncArtistsSubscriptions(authoritative = authoritative) },
+                        ).awaitAll()
+
+                        syncSavedPlaylists(authoritative = authoritative)
+                        if (!authoritative) {
+                            syncAutoSyncPlaylists()
+                        }
+                    }
+                } catch (e: Exception) {
+                    Timber.e(e, "Error during full sync")
+                } finally {
+                    syncMutex.unlock()
+                }
+            }
+
+        suspend fun cleanupDuplicatePlaylists() =
+            withContext(Dispatchers.IO) {
+                try {
+                    val allPlaylists = database.playlistsByNameAsc().first()
+                    val browseIdGroups =
+                        allPlaylists
+                            .filter { it.playlist.browseId != null }
+                            .groupBy { it.playlist.browseId }
+
+                    for ((browseId, playlists) in browseIdGroups) {
+                        if (playlists.size > 1) {
+                            Timber.w("Found ${playlists.size} duplicate playlists for browseId: $browseId")
+                            val toKeep =
+                                playlists.maxByOrNull { it.songCount }
+                                    ?: playlists.first()
+
+                            playlists.filter { it.id != toKeep.id }.forEach { duplicate ->
+                                Timber.d("Removing duplicate playlist: ${duplicate.playlist.name} (${duplicate.id})")
+                                database.clearPlaylist(duplicate.id)
+                                database.delete(duplicate.playlist)
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Timber.e(e, "Error cleaning up duplicate playlists")
+                }
+            }
+
+        private fun preferredPlaylistCopy(
+            current: Playlist,
+            candidate: Playlist,
+        ): Playlist {
+            val bySongCount = candidate.songCount.compareTo(current.songCount)
+            if (bySongCount != 0) {
+                return if (bySongCount > 0) candidate else current
+            }
+
+            val byLastUpdated = compareNullableDateTimes(candidate.playlist.lastUpdateTime, current.playlist.lastUpdateTime)
+            if (byLastUpdated != 0) {
+                return if (byLastUpdated > 0) candidate else current
+            }
+
+            val byCreatedAt = compareNullableDateTimes(candidate.playlist.createdAt, current.playlist.createdAt)
+            if (byCreatedAt != 0) {
+                return if (byCreatedAt > 0) candidate else current
+            }
+
+            if (candidate.playlist.isEditable != current.playlist.isEditable) {
+                return if (candidate.playlist.isEditable) candidate else current
+            }
+
+            return if (candidate.id < current.id) candidate else current
+        }
+
+        private fun compareNullableDateTimes(
+            first: LocalDateTime?,
+            second: LocalDateTime?,
+        ): Int {
+            if (first == second) return 0
+            if (first == null) return -1
+            if (second == null) return 1
+            return first.compareTo(second)
+        }
+
+        private fun canonicalPlaylistCopies(playlists: List<Playlist>): List<Playlist> =
+            playlists
+                .groupBy { it.playlist.browseId ?: it.id }
+                .values
+                .map { copies ->
+                    copies.reduce(::preferredPlaylistCopy)
+                }
+
+        private suspend fun isLoggedIn(): Boolean {
+            val cookie =
+                context.dataStore.data
+                    .map { it[InnerTubeCookieKey] }
+                    .first()
+            return hasYouTubeLoginCookie(cookie)
+        }
+
+        private suspend fun isYtmSyncEnabled(): Boolean {
+            val enabled =
+                context.dataStore.data
+                    .map { it[YtmSyncKey] ?: true }
+                    .first()
+            syncEnabled.value = enabled
+            if (!enabled) {
+                syncGeneration.incrementAndGet()
+            }
+            return enabled
+        }
+
+        private fun isSyncStillEnabled(gen: Long): Boolean = syncEnabled.value && syncGeneration.get() == gen
+
+        fun likeSong(s: SongEntity) {
+            if (s.isLocal) return
+            syncScope.launch {
+                if (!isLoggedIn()) {
+                    Timber.w("Skipping likeSong - user not logged in")
+                    return@launch
+                }
+                if (!isYtmSyncEnabled()) {
+                    Timber.w("Skipping likeSong - sync disabled")
+                    return@launch
+                }
+                val gen = syncGeneration.get()
+                if (!isSyncStillEnabled(gen)) return@launch
+                YouTube.likeVideo(s.id, s.liked)
+            }
+        }
+
+        fun likeSongs(songs: Collection<SongEntity>) {
+            val uniqueSongs = songs.filterNot(SongEntity::isLocal).distinctBy { it.id }
+            if (uniqueSongs.isEmpty()) return
+
+            syncScope.launch {
+                if (!isLoggedIn()) {
+                    Timber.w("Skipping likeSongs - user not logged in")
+                    return@launch
+                }
+                if (!isYtmSyncEnabled()) {
+                    Timber.w("Skipping likeSongs - sync disabled")
+                    return@launch
+                }
+
+                val gen = syncGeneration.get()
+                uniqueSongs.chunked(8).forEach { batch ->
+                    if (!isSyncStillEnabled(gen)) return@launch
+
+                    coroutineScope {
+                        batch
+                            .map { song ->
+                                async {
+                                    if (!isSyncStillEnabled(gen)) return@async
+                                    YouTube
+                                        .likeVideo(song.id, song.liked)
+                                        .onFailure { error ->
+                                            Timber.w(error, "likeSongs: Failed to sync like for ${song.id}")
+                                        }
+                                }
+                            }.awaitAll()
+                    }
+                }
+            }
+        }
+
+        private data class LikedPlaylistFetch(
+            val songs: List<SongItem>,
+            val headerTotal: Int?,
+            val complete: Boolean,
+        )
+
+        /**
+         * YouTube Music renders the Liked header count as plain digits ("643"), but
+         * switches to compact form once the library is large ("1.2K"). Stripping
+         * digits out of a compact form yields a plausible-looking but wrong number
+         * ("12"), which would understate the blind spot, so anything containing a
+         * letter is reported as unknown instead of guessed.
+         */
+        private fun parseSongCountText(raw: String): Int? =
+            if (raw.any(Char::isLetter)) {
+                null
+            } else {
+                raw.filter(Char::isDigit).toIntOrNull()
+            }
+
+        /**
+         * Follows the Liked playlist continuations with per-page retries, instead of
+         * core's completed(), so a truncated fetch is DETECTED rather than silently
+         * mistaken for the whole library: upserts still apply to whatever arrived, but
+         * authoritative stale-removal must only run when [LikedPlaylistFetch.complete].
+         */
+        private suspend fun fetchCompleteLikedPlaylist(firstPage: PlaylistPage): LikedPlaylistFetch {
+            val songs = firstPage.songs.orEmpty().toMutableList()
+            val headerTotal = firstPage.playlist.songCountText?.let(::parseSongCountText)
+            var continuation =
+                firstPage.songsContinuation.takeUnless { it.isNullOrBlank() }
+                    ?: firstPage.continuation.takeUnless { it.isNullOrBlank() }
+            val seenContinuations = mutableSetOf<String>()
+            var consecutiveEmpty = 0
+            var complete = true
+            var pages = 1
+            while (continuation != null && pages < likedSyncMaxPages) {
+                if (!seenContinuations.add(continuation)) {
+                    continuation = null
+                    break
+                }
+                val page = fetchLikedContinuationPage(continuation)
+                pages++
+                if (page == null) {
+                    complete = false
+                    break
+                }
+                if (page.songs.isEmpty()) {
+                    consecutiveEmpty++
+                    if (consecutiveEmpty >= 2) {
+                        continuation = null
+                        break
+                    }
+                } else {
+                    consecutiveEmpty = 0
+                    songs += page.songs
+                }
+                continuation = page.continuation.takeUnless { it.isNullOrBlank() }
+            }
+            if (continuation != null) complete = false
+            return LikedPlaylistFetch(
+                songs = songs.distinctByPlaylistEntry(),
+                headerTotal = headerTotal,
+                complete = complete,
+            )
+        }
+
+        private suspend fun fetchLikedContinuationPage(continuation: String): PlaylistContinuationPage? {
+            repeat(likedSyncContinuationAttempts) { attempt ->
+                if (attempt > 0) delay(likedSyncContinuationRetryMs * attempt)
+                val page =
+                    runCatching {
+                        YouTube.playlistContinuation(continuation, "LM").getOrNull()
+                    }.getOrNull()
+                if (page != null) return page
+            }
+            Timber.w(
+                "syncLikedSongs: continuation fetch failed after $likedSyncContinuationAttempts attempts",
+            )
+            return null
+        }
+
+        /**
+         * True when persisting [mediaMetadata] over [existing] would leave the row
+         * exactly as it already is.
+         *
+         * Every refresh used to rewrite every remote song, and
+         * update(song, mediaMetadata) does not just touch the song row: it deletes
+         * the whole song/artist map and re-inserts it. With several hundred remote
+         * songs that made an unchanged library pay full write cost for identical
+         * data, which is what dominated refresh time. These are precisely the
+         * fields update() writes, so a true result means the write is a no-op.
+         */
+        private fun isAlreadyStored(existing: Song, mediaMetadata: MediaMetadata): Boolean {
+            val entity = existing.song
+            val expectedTitle =
+                if (entity.titleOverride) entity.title else mediaMetadata.title
+            return entity.title == expectedTitle &&
+                entity.duration == mediaMetadata.duration &&
+                entity.thumbnailUrl == mediaMetadata.thumbnailUrl &&
+                entity.albumId == mediaMetadata.album?.id &&
+                entity.albumName == mediaMetadata.album?.title &&
+                entity.explicit == mediaMetadata.explicit &&
+                entity.isMusicVideo == mediaMetadata.isMusicVideo &&
+                existing.artists.map { it.name }.toSet() ==
+                mediaMetadata.artists.map { it.name }.toSet()
+        }
+
+        /**
+         * Loads the rows for [ids] in one pass instead of one Flow query per song.
+         *
+         * Chunked because SQLite caps the bound parameters of a statement (999 on
+         * older Android), and a large library is well past that in a single IN list.
+         */
+        private suspend fun prefetchSongs(ids: Collection<String>): Map<String, Song> {
+            val found = HashMap<String, Song>(ids.size)
+            val chunkSize = 500
+            var chunk = ArrayList<String>(minOf(ids.size, chunkSize))
+            for (id in ids) {
+                chunk.add(id)
+                if (chunk.size == chunkSize) {
+                    database.getSongsByIds(chunk).forEach { found[it.id] = it }
+                    chunk = ArrayList(chunkSize)
+                }
+            }
+            if (chunk.isNotEmpty()) {
+                database.getSongsByIds(chunk).forEach { found[it.id] = it }
+            }
+            return found
+        }
+
+        suspend fun syncLikedSongs(authoritative: Boolean = false) =
+            coroutineScope {
+                if (!isLoggedIn()) {
+                    Timber.w("Skipping syncLikedSongs - user not logged in")
+                    return@coroutineScope
+                }
+                if (!isYtmSyncEnabled()) {
+                    Timber.w("Skipping syncLikedSongs - sync disabled")
+                    return@coroutineScope
+                }
+                val gen = syncGeneration.get()
+                runCatching {
+                    fetchCompleteLikedPlaylist(YouTube.playlist("LM").getOrThrow())
+                }.onSuccess { fetch ->
+                        if (!isSyncStillEnabled(gen)) return@onSuccess
+                        val remoteSongs = fetch.songs
+                        Timber.i(
+                            "syncLikedSongs: remote headerTotal=${fetch.headerTotal} " +
+                                "mapped=${remoteSongs.size} complete=${fetch.complete}",
+                        )
+                        fetch.headerTotal?.let { headerTotal ->
+                            val unmapped = headerTotal - remoteSongs.size
+                            if (unmapped > 0) {
+                                Timber.w(
+                                    "syncLikedSongs: $unmapped remote entries unmappable " +
+                                        "(likely unavailable/deleted songs still counted by YouTube Music)",
+                                )
+                            }
+                        }
+                        if (remoteSongs.isEmpty() && !authoritative) {
+                            Timber.w("syncLikedSongs: Remote playlist is empty")
+                            return@onSuccess
+                        }
+                        val remoteIds = remoteSongs.map { it.id }.toSet()
+                        // YouTube Music keeps counting entries it will not hand back as
+                        // playable items (deleted, private or region-blocked videos). Those
+                        // entries still count towards the header total but never reach
+                        // remoteIds, so a locally liked song sitting in that blind spot is
+                        // indistinguishable from a song the user genuinely unliked.
+                        //
+                        // Treating "absent from remoteIds" as proof of an unlike is what
+                        // silently deleted songs nobody removed. The size of that blind
+                        // spot bounds how much absence is still trustworthy, so removal is
+                        // capped at the provable surplus: at most (localOnly - blindSpot)
+                        // songs can be shown to have been unliked. A header total we
+                        // cannot read gives no bound at all, so removal is skipped.
+                        val blindSpot = fetch.headerTotal?.let { (it - remoteSongs.size).coerceAtLeast(0) }
+                        if (authoritative && !fetch.complete) {
+                            Timber.w(
+                                "syncLikedSongs: skipping authoritative stale-removal after truncated fetch",
+                            )
+                        } else if (authoritative && blindSpot == null) {
+                            Timber.w(
+                                "syncLikedSongs: skipping authoritative stale-removal - " +
+                                    "remote header count is unreadable, absence proves nothing",
+                            )
+                        } else if (authoritative) {
+                            // Reached only when blindSpot != null; bind it to a non-null
+                            // local so the arithmetic below stays Int.
+                            val blind = blindSpot ?: 0
+                            val localLikedSongs = database.likedSongsByNameAsc().first()
+                            if (!isSyncStillEnabled(gen)) return@onSuccess
+                            val localOnly =
+                                localLikedSongs
+                                    .asSequence()
+                                    .map { it.song }
+                                    .filterNot { it.isLocal }
+                                    .filterNot { it.id in remoteIds }
+                                    .toList()
+                            val removable = (localOnly.size - blind).coerceAtLeast(0)
+                            if (localOnly.isNotEmpty()) {
+                                Timber.i(
+                                    "syncLikedSongs: localOnly=${localOnly.size} " +
+                                        "blindSpot=$blind removable=$removable",
+                                )
+                            }
+                            // Oldest like first: when a song's true state is unknowable,
+                            // the one liked longest ago is the most likely genuine unlike.
+                            // Songs with no likedDate are kept - we know least about them.
+                            val staleLikedSongs =
+                                localOnly
+                                    .sortedWith(compareBy(nullsLast<LocalDateTime>()) { it.likedDate })
+                                    .take(removable)
+                                    .map { it.copy(liked = false, likedDate = null) }
+                            if (staleLikedSongs.isNotEmpty()) {
+                                database.withTransaction {
+                                    staleLikedSongs.forEach { update(it) }
+                                }
+                            }
+                        }
+                        val baseTimestamp = LocalDateTime.now()
+                        val failedUpserts = AtomicInteger(0)
+
+                        // One bulk read replaces a per-song Flow query, and lets the
+                        // unchanged songs bail out before taking a write permit.
+                        val storedSongs = if (isSyncStillEnabled(gen)) {
+                            prefetchSongs(remoteIds)
+                        } else {
+                            emptyMap()
+                        }
+                        val skippedUnchanged = AtomicInteger(0)
+
+                        val upsertJobs =
+                            remoteSongs.mapIndexed { index, song ->
+                                val timestamp = likedSongTimestamp(baseTimestamp, index)
+                                launch {
+                                    try {
+                                        if (!isSyncStillEnabled(gen)) return@launch
+                                        val mediaMetadata = song.toMediaMetadata()
+                                        val dbSong = storedSongs[song.id]
+                                        if (dbSong != null &&
+                                            dbSong.song.liked &&
+                                            dbSong.song.likedDate != null &&
+                                            isAlreadyStored(dbSong, mediaMetadata)
+                                        ) {
+                                            skippedUnchanged.incrementAndGet()
+                                            return@launch
+                                        }
+                                        dbWriteSemaphore.withPermit {
+                                            if (!isSyncStillEnabled(gen)) return@withPermit
+                                            val current = dbSong ?: database.song(song.id).firstOrNull()
+                                            database.withTransaction {
+                                                if (!isSyncStillEnabled(gen)) return@withTransaction
+                                                if (current == null) {
+                                                    insert(mediaMetadata) { it.copy(liked = true, likedDate = timestamp) }
+                                                } else {
+                                                    update(current, mediaMetadata)
+                                                    if (!current.song.liked || current.song.likedDate == null) {
+                                                        getSongByIdBlocking(song.id)?.song?.let { refreshedSong ->
+                                                            update(refreshedSong.copy(liked = true, likedDate = timestamp))
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    } catch (e: CancellationException) {
+                                        throw e
+                                    } catch (e: Exception) {
+                                        failedUpserts.incrementAndGet()
+                                        Timber.w(e, "syncLikedSongs: failed to upsert ${song.id}")
+                                    }
+                                }
+                            }
+                        upsertJobs.joinAll()
+                        val localLikedCount = database.likedSongsByNameAsc().first().size
+                        Timber.i(
+                            "syncLikedSongs: done remote=${remoteSongs.size} " +
+                                "localLiked=$localLikedCount failedUpserts=${failedUpserts.get()} " +
+                                "unchanged=${skippedUnchanged.get()} complete=${fetch.complete}",
+                        )
+                        if (localLikedCount < remoteSongs.size) {
+                            Timber.w(
+                                "syncLikedSongs: local liked count ($localLikedCount) is below " +
+                                    "remote mapped count (${remoteSongs.size})",
+                            )
+                        }
+                    }.onFailure { e ->
+                        Timber.e(e, "syncLikedSongs: Failed to sync liked songs")
+                    }
+            }
+
+        suspend fun syncLibrarySongs(authoritative: Boolean = false) =
+            coroutineScope {
+                if (!isLoggedIn()) {
+                    Timber.w("Skipping syncLibrarySongs - user not logged in")
+                    return@coroutineScope
+                }
+                if (!isYtmSyncEnabled()) {
+                    Timber.w("Skipping syncLibrarySongs - sync disabled")
+                    return@coroutineScope
+                }
+                val gen = syncGeneration.get()
+                YouTube
+                    .library("FEmusic_liked_videos")
+                    .completed()
+                    .onSuccess { page ->
+                        if (!isSyncStillEnabled(gen)) return@onSuccess
+                        val remoteSongs = page.items.filterIsInstance<SongItem>().reversed()
+                        if (remoteSongs.isEmpty() && !authoritative) {
+                            Timber.w("syncLibrarySongs: Remote library is empty")
+                            return@onSuccess
+                        }
+                        val remoteIds = remoteSongs.map { it.id }.toSet()
+                        val localSongs = database.songsByNameAsc().first()
+
+                        if (!isSyncStillEnabled(gen)) return@onSuccess
+                        val staleLibrarySongs =
+                            localSongs
+                                .asSequence()
+                                .filter { !authoritative || !it.song.isLocal }
+                                .filterNot { it.id in remoteIds }
+                                .map { it.song.copy(inLibrary = null) }
+                                .toList()
+                        if (staleLibrarySongs.isNotEmpty()) {
+                            database.withTransaction {
+                                staleLibrarySongs.forEach { update(it) }
+                            }
+                        }
+
+                        val storedSongs = if (isSyncStillEnabled(gen)) {
+                            prefetchSongs(remoteIds)
+                        } else {
+                            emptyMap()
+                        }
+                        val skippedUnchanged = AtomicInteger(0)
+                        val upsertJobs =
+                            remoteSongs.map { song ->
+                                launch {
+                                    if (!isSyncStillEnabled(gen)) return@launch
+                                    val mediaMetadata = song.toMediaMetadata()
+                                    val dbSong = storedSongs[song.id]
+                                    if (dbSong != null &&
+                                        dbSong.song.inLibrary != null &&
+                                        isAlreadyStored(dbSong, mediaMetadata)
+                                    ) {
+                                        skippedUnchanged.incrementAndGet()
+                                        return@launch
+                                    }
+                                    dbWriteSemaphore.withPermit {
+                                        if (!isSyncStillEnabled(gen)) return@withPermit
+                                        val current = dbSong ?: database.song(song.id).firstOrNull()
+                                        database.withTransaction {
+                                            if (!isSyncStillEnabled(gen)) return@withTransaction
+                                            if (current == null) {
+                                                insert(mediaMetadata) { it.toggleLibrary() }
+                                            } else {
+                                                update(current, mediaMetadata)
+                                                if (current.song.inLibrary == null) {
+                                                    getSongByIdBlocking(song.id)?.song?.let { refreshedSong ->
+                                                        update(refreshedSong.toggleLibrary())
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        upsertJobs.joinAll()
+                        Timber.i(
+                            "syncLibrarySongs: done remote=${remoteSongs.size} " +
+                                "unchanged=${skippedUnchanged.get()}",
+                        )
+                    }.onFailure { e ->
+                        Timber.e(e, "syncLibrarySongs: Failed to sync library songs")
+                    }
+            }
+
+        suspend fun syncLikedAlbums(authoritative: Boolean = false) =
+            coroutineScope {
+                if (!isLoggedIn()) {
+                    Timber.w("Skipping syncLikedAlbums - user not logged in")
+                    return@coroutineScope
+                }
+                if (!isYtmSyncEnabled()) {
+                    Timber.w("Skipping syncLikedAlbums - sync disabled")
+                    return@coroutineScope
+                }
+                val gen = syncGeneration.get()
+                YouTube
+                    .library("FEmusic_liked_albums")
+                    .completed()
+                    .onSuccess { page ->
+                        if (!isSyncStillEnabled(gen)) return@onSuccess
+                        val remoteAlbums = page.items.filterIsInstance<AlbumItem>().reversed()
+                        if (remoteAlbums.isEmpty() && !authoritative) {
+                            Timber.w("syncLikedAlbums: No liked albums found")
+                            return@onSuccess
+                        }
+                        val remoteIds = remoteAlbums.map { it.id }.toSet()
+                        val localAlbums = database.albumsLikedByNameAsc().first()
+
+                        if (!isSyncStillEnabled(gen)) return@onSuccess
+                        val staleAlbums =
+                            localAlbums
+                                .asSequence()
+                                .filter { !authoritative || !it.album.isLocal }
+                                .filterNot { it.id in remoteIds }
+                                .map { it.album.localToggleLike() }
+                                .toList()
+                        if (staleAlbums.isNotEmpty()) {
+                            database.withTransaction {
+                                staleAlbums.forEach { update(it) }
+                            }
+                        }
+
+                        remoteAlbums.forEach { album ->
+                            launch {
+                                if (!isSyncStillEnabled(gen)) return@launch
+                                dbWriteSemaphore.withPermit {
+                                    if (!isSyncStillEnabled(gen)) return@withPermit
+                                    val dbAlbum = database.album(album.id).firstOrNull()
+                                    if (dbAlbum != null) {
+                                        // Already in library: refresh cheap metadata from the library
+                                        // entry and ensure the liked flag, without the expensive full
+                                        // album-page fetch below (that kept refresh() spinning for minutes).
+                                        val existing = dbAlbum.album
+                                        val metadataChanged =
+                                            existing.title != album.title ||
+                                                existing.thumbnailUrl != album.thumbnail ||
+                                                (album.year != null && existing.year != album.year) ||
+                                                existing.playlistId != album.playlistId
+                                        if (metadataChanged || existing.bookmarkedAt == null) {
+                                            database.update(
+                                                existing.copy(
+                                                    title = album.title,
+                                                    thumbnailUrl = album.thumbnail,
+                                                    year = album.year ?: existing.year,
+                                                    playlistId = album.playlistId,
+                                                    bookmarkedAt = existing.bookmarkedAt ?: LocalDateTime.now(),
+                                                    lastUpdateTime = LocalDateTime.now(),
+                                                ),
+                                            )
+                                        }
+                                        return@withPermit
+                                    }
+                                    // New album: the full page fetch is required to insert it with songs.
+                                    YouTube
+                                        .album(album.browseId)
+                                        .onSuccess { albumPage ->
+                                            if (!isSyncStillEnabled(gen)) return@onSuccess
+                                            try {
+                                                database.insert(albumPage)
+                                                database.album(album.id).firstOrNull()?.let { newDbAlbum ->
+                                                    database.update(newDbAlbum.album.localToggleLike())
+                                                }
+                                            } catch (e: Exception) {
+                                                Timber.w("syncLikedAlbums: Failed to insert album ${album.id}", e)
+                                            }
+                                        }.onFailure { e ->
+                                            Timber.w("syncLikedAlbums: Failed to fetch album ${album.id}", e)
+                                        }
+                                }
+                            }
+                        }
+                    }.onFailure { e ->
+                        Timber.e(e, "syncLikedAlbums: Failed to sync liked albums")
+                    }
+            }
+
+        suspend fun syncArtistsSubscriptions(authoritative: Boolean = false) =
+            coroutineScope {
+                if (!isLoggedIn()) {
+                    Timber.w("Skipping syncArtistsSubscriptions - user not logged in")
+                    return@coroutineScope
+                }
+                if (!isYtmSyncEnabled()) {
+                    Timber.w("Skipping syncArtistsSubscriptions - sync disabled")
+                    return@coroutineScope
+                }
+                val gen = syncGeneration.get()
+                YouTube
+                    .library("FEmusic_library_corpus_artists")
+                    .completed()
+                    .onSuccess { page ->
+                        if (!isSyncStillEnabled(gen)) return@onSuccess
+                        val remoteArtists = page.items.filterIsInstance<ArtistItem>().distinctBy { it.id }
+                        if (remoteArtists.isEmpty() && !authoritative) {
+                            Timber.w("syncArtistsSubscriptions: No artist subscriptions found")
+                            return@onSuccess
+                        }
+                        val now = LocalDateTime.now()
+                        val remoteIds = remoteArtists.map { it.id }.toSet()
+                        val localArtists = database.artistsBookmarkedByNameAsc().first()
+
+                        if (!isSyncStillEnabled(gen)) return@onSuccess
+                        val staleArtists =
+                            localArtists
+                                .asSequence()
+                                .filter { !authoritative || !it.artist.isLocal }
+                                .filterNot { it.id in remoteIds }
+                                .map { it.artist.copy(bookmarkedAt = null, lastUpdateTime = now) }
+                                .toList()
+                        if (staleArtists.isNotEmpty()) {
+                            database.withTransaction {
+                                staleArtists.forEach { update(it) }
+                            }
+                        }
+
+                        remoteArtists.forEachIndexed { index, artist ->
+                            launch {
+                                if (!isSyncStillEnabled(gen)) return@launch
+                                dbWriteSemaphore.withPermit {
+                                    if (!isSyncStillEnabled(gen)) return@withPermit
+                                    val dbArtist = database.artist(artist.id).firstOrNull()
+                                    val bookmarkedAt = now.minusSeconds(index.toLong())
+                                    database.withTransaction {
+                                        if (!isSyncStillEnabled(gen)) return@withTransaction
+                                        if (dbArtist == null) {
+                                            insert(
+                                                ArtistEntity(
+                                                    id = artist.id,
+                                                    name = artist.title,
+                                                    thumbnailUrl = artist.thumbnail,
+                                                    channelId = artist.channelId,
+                                                    bookmarkedAt = bookmarkedAt,
+                                                ),
+                                            )
+                                        } else {
+                                            val existing = dbArtist.artist
+                                            val syncedThumbnail = artist.thumbnail ?: existing.thumbnailUrl
+                                            val syncedChannelId = artist.channelId ?: existing.channelId
+                                            val metadataChanged =
+                                                existing.name != artist.title ||
+                                                    existing.thumbnailUrl != syncedThumbnail ||
+                                                    existing.channelId != syncedChannelId
+                                            val needsBookmark = existing.bookmarkedAt == null
+
+                                            if (metadataChanged || needsBookmark) {
+                                                update(
+                                                    existing.copy(
+                                                        name = artist.title,
+                                                        thumbnailUrl = syncedThumbnail,
+                                                        channelId = syncedChannelId,
+                                                        lastUpdateTime = now,
+                                                        bookmarkedAt = existing.bookmarkedAt ?: bookmarkedAt,
+                                                    ),
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }.onFailure { e ->
+                        Timber.e(e, "syncArtistsSubscriptions: Failed to sync artist subscriptions")
+                    }
+            }
+
+        suspend fun syncSavedPlaylists(authoritative: Boolean = false) =
+            playlistSyncMutex.withLock {
+                if (!isLoggedIn()) {
+                    Timber.w("Skipping syncSavedPlaylists - user not logged in")
+                    return@withLock
+                }
+                if (!isYtmSyncEnabled()) {
+                    Timber.w("Skipping syncSavedPlaylists - sync disabled")
+                    return@withLock
+                }
+
+                cleanupDuplicatePlaylists()
+
+                val gen = syncGeneration.get()
+
+                YouTube
+                    .library("FEmusic_liked_playlists")
+                    .completed()
+                    .onSuccess { page ->
+                        if (!isSyncStillEnabled(gen)) return@onSuccess
+                        val remotePlaylists =
+                            page.items
+                                .filterIsInstance<PlaylistItem>()
+                                .filterNot { it.id == "LM" || it.id == "SE" }
+                                .reversed()
+
+                        if (remotePlaylists.isEmpty() && !authoritative) {
+                            Timber.w("syncSavedPlaylists: No playlists found")
+                            return@onSuccess
+                        }
+
+                        val selectedCsv = context.dataStore.data.first()[SelectedYtmPlaylistsKey] ?: ""
+                        val selectedIds =
+                            selectedCsv
+                                .split(',')
+                                .map { it.trim() }
+                                .filter { it.isNotEmpty() }
+                                .toSet()
+
+                        val localPlaylists = database.playlistsByNameAsc().first()
+                        if (!isSyncStillEnabled(gen)) return@onSuccess
+
+                        val now = LocalDateTime.now()
+                        val remoteLikedIds = remotePlaylists.map { it.id }.toSet()
+
+                        val stalePlaylists =
+                            localPlaylists
+                                .asSequence()
+                                .map { it.playlist }
+                                .filter { it.browseId != null }
+                                .filter { it.browseId !in remoteLikedIds }
+                                .map { it.copy(bookmarkedAt = null, lastUpdateTime = now) }
+                                .toList()
+                        if (stalePlaylists.isNotEmpty()) {
+                            database.withTransaction {
+                                stalePlaylists.forEach { update(it) }
+                            }
+                        }
+
+                        val localPlaylistIdByBrowseId = HashMap<String, String>(remotePlaylists.size)
+                        for (playlist in remotePlaylists) {
+                            if (!isSyncStillEnabled(gen)) return@onSuccess
+                            try {
+                                val existingPlaylist = database.playlistByBrowseId(playlist.id).firstOrNull()
+                                if (existingPlaylist == null) {
+                                    val playlistEntity =
+                                        PlaylistEntity(
+                                            name = playlist.title,
+                                            browseId = playlist.id,
+                                            thumbnailUrl = playlist.thumbnail,
+                                            isEditable = playlist.isEditable,
+                                            bookmarkedAt = now,
+                                            remoteSongCount =
+                                                playlist.songCountText?.let {
+                                                    Regex(
+                                                        """\d+""",
+                                                    ).find(it)?.value?.toIntOrNull()
+                                                },
+                                            playEndpointParams = playlist.playEndpoint?.params,
+                                            shuffleEndpointParams = playlist.shuffleEndpoint?.params,
+                                            radioEndpointParams = playlist.radioEndpoint?.params,
+                                        )
+                                    database.insert(playlistEntity)
+                                    localPlaylistIdByBrowseId[playlist.id] = playlistEntity.id
+                                    Timber.d("syncSavedPlaylists: Created new playlist ${playlist.title} (${playlist.id})")
+                                } else {
+                                    val baseEntity = existingPlaylist.playlist
+                                    val likedEntity =
+                                        if (baseEntity.bookmarkedAt == null) {
+                                            baseEntity.copy(bookmarkedAt = now, lastUpdateTime = now)
+                                        } else {
+                                            baseEntity
+                                        }
+                                    database.update(likedEntity, playlist)
+                                    localPlaylistIdByBrowseId[playlist.id] = likedEntity.id
+                                    Timber.d("syncSavedPlaylists: Updated existing playlist ${playlist.title} (${playlist.id})")
+                                }
+                            } catch (e: Exception) {
+                                Timber.e(e, "syncSavedPlaylists: Failed to upsert playlist ${playlist.title}")
+                            }
+                        }
+
+                        val playlistsToSync =
+                            if (selectedIds.isNotEmpty()) remotePlaylists.filter { it.id in selectedIds } else remotePlaylists
+                        if (selectedIds.isNotEmpty() && playlistsToSync.isEmpty()) {
+                            Timber.w(
+                                "syncSavedPlaylists: Selected playlists not found in remote library; skipping song sync (selected=${selectedIds.size}, remote=${remotePlaylists.size})",
+                            )
+                        }
+
+                        for (playlist in playlistsToSync) {
+                            if (!isSyncStillEnabled(gen)) return@onSuccess
+                            try {
+                                val playlistId =
+                                    localPlaylistIdByBrowseId[playlist.id]
+                                        ?: database
+                                            .playlistByBrowseId(playlist.id)
+                                            .firstOrNull()
+                                            ?.playlist
+                                            ?.id
+                                        ?: continue
+                                syncPlaylist(
+                                    browseId = playlist.id,
+                                    playlistId = playlistId,
+                                    authoritative = authoritative,
+                                )
+                            } catch (e: Exception) {
+                                Timber.e(e, "Failed to sync playlist ${playlist.title}")
+                            }
+                        }
+                    }.onFailure { e ->
+                        Timber.e(e, "syncSavedPlaylists: Failed to fetch playlists from YouTube")
+                    }
+            }
+
+        suspend fun syncAutoSyncPlaylists() =
+            coroutineScope {
+                if (!isLoggedIn()) {
+                    Timber.w("Skipping syncAutoSyncPlaylists - user not logged in")
+                    return@coroutineScope
+                }
+                if (!isYtmSyncEnabled()) {
+                    Timber.w("Skipping syncAutoSyncPlaylists - sync disabled")
+                    return@coroutineScope
+                }
+
+                cleanupDuplicatePlaylists()
+
+                val gen = syncGeneration.get()
+                val autoSyncPlaylists =
+                    try {
+                        canonicalPlaylistCopies(
+                            database
+                                .playlistsByNameAsc()
+                                .first()
+                                .filter { it.playlist.isAutoSync && it.playlist.browseId != null },
+                        )
+                    } catch (e: Exception) {
+                        Timber.e(e, "syncAutoSyncPlaylists: Failed to fetch auto-sync playlists")
+                        return@coroutineScope
+                    }
+
+                Timber.d("syncAutoSyncPlaylists: Found ${autoSyncPlaylists.size} playlists to sync")
+
+                autoSyncPlaylists.forEach { playlist ->
+                    launch {
+                        if (!isSyncStillEnabled(gen)) return@launch
+                        try {
+                            dbWriteSemaphore.withPermit {
+                                if (!isSyncStillEnabled(gen)) return@withPermit
+                                val browseId =
+                                    playlist.playlist.browseId ?: run {
+                                        Timber.w("syncAutoSyncPlaylists: browseId is null for playlist ${playlist.playlist.name}")
+                                        return@withPermit
+                                    }
+                                syncPlaylist(browseId, playlist.playlist.id)
+                            }
+                        } catch (e: Exception) {
+                            Timber.e(e, "Failed to sync playlist ${playlist.playlist.name}")
+                        }
+                    }
+                }
+            }
+
+        suspend fun syncPlaylistNow(
+            browseId: String,
+            playlistId: String,
+            propagateFailures: Boolean = false,
+            onProgress: (completedSongs: Int, totalSongs: Int) -> Unit = { _, _ -> },
+        ) = playlistSyncMutex.withLock {
+            syncPlaylist(
+                browseId = browseId,
+                playlistId = playlistId,
+                propagateFailures = propagateFailures,
+                onProgress = onProgress,
+            )
+        }
+
+        private suspend fun syncPlaylist(
+            browseId: String,
+            playlistId: String,
+            authoritative: Boolean = false,
+            propagateFailures: Boolean = false,
+            onProgress: (completedSongs: Int, totalSongs: Int) -> Unit = { _, _ -> },
+        ) = coroutineScope {
+            if (!isYtmSyncEnabled()) {
+                Timber.w("syncPlaylist: Skipping - sync disabled")
+                return@coroutineScope
+            }
+            val gen = syncGeneration.get()
+            if (!isSyncStillEnabled(gen)) return@coroutineScope
+            Timber.d("syncPlaylist: Starting sync for browseId=$browseId, playlistId=$playlistId")
+
+            val page =
+                YouTube.playlist(browseId).completed().getOrElse { e ->
+                    Timber.e(e, "syncPlaylist: Failed to fetch playlist from YouTube")
+                    if (propagateFailures) {
+                        throw e
+                    }
+                    return@coroutineScope
+                }
+            if (!isSyncStillEnabled(gen)) return@coroutineScope
+            val songs =
+                page.songs
+                    .orEmpty()
+                    .filter { song -> song.setVideoId?.isNotBlank() == true }
+                    .map(SongItem::toMediaMetadata)
+            Timber.d("syncPlaylist: Fetched ${songs.size} songs from remote")
+
+            if (songs.isEmpty()) {
+                if (authoritative) {
+                    database.withTransaction {
+                        if (!isSyncStillEnabled(gen)) return@withTransaction
+                        database.clearPlaylist(playlistId)
+                    }
+                }
+                Timber.w("syncPlaylist: Remote playlist is empty, skipping sync")
+                return@coroutineScope
+            }
+
+            val remoteIds = songs.mapNotNull { it.id }
+            if (remoteIds.isEmpty()) {
+                Timber.w("syncPlaylist: No valid song IDs found, skipping sync")
+                return@coroutineScope
+            }
+
+            val localIds =
+                try {
+                    database
+                        .playlistSongs(playlistId)
+                        .first()
+                        .sortedBy { it.map.position }
+                        .map { it.song.id }
+                } catch (e: Exception) {
+                    Timber.w("syncPlaylist: Failed to fetch local songs", e)
+                    emptyList()
+                }
+
+            if (remoteIds == localIds) {
+                database.withTransaction {
+                    songs.forEach { song ->
+                        val existingSong = getSongByIdBlocking(song.id)
+                        if (existingSong == null) {
+                            insert(song)
+                        } else {
+                            update(existingSong, song)
+                        }
+                    }
+                }
+                Timber.d("syncPlaylist: Local and remote are in sync, no changes needed")
+                onProgress(remoteIds.size, remoteIds.size)
+                return@coroutineScope
+            }
+
+            Timber.d("syncPlaylist: Updating local playlist (remote: ${remoteIds.size}, local: ${localIds.size})")
+
+            try {
+                onProgress(0, remoteIds.size)
+                database.withTransaction {
+                    if (!isSyncStillEnabled(gen)) return@withTransaction
+                    database.clearPlaylist(playlistId)
+                    var completedSongs = 0
+                    songs.forEachIndexed { idx, song ->
+                        if (!isSyncStillEnabled(gen)) return@withTransaction
+                        val songId = song.id ?: return@forEachIndexed
+                        val existingSong = getSongByIdBlocking(songId)
+                        if (existingSong == null) {
+                            database.insert(song)
+                        } else {
+                            database.update(existingSong, song)
+                        }
+                        database.insert(
+                            PlaylistSongMap(
+                                songId = songId,
+                                playlistId = playlistId,
+                                position = idx,
+                                setVideoId = song.setVideoId,
+                            ),
+                        )
+                        completedSongs += 1
+                        onProgress(completedSongs, remoteIds.size)
+                    }
+                }
+                Timber.d("syncPlaylist: Successfully synced playlist")
+            } catch (e: Exception) {
+                Timber.e(e, "syncPlaylist: Error during database transaction")
+                if (propagateFailures) {
+                    throw e
+                }
+            }
+        }
+    }
+
+internal fun likedSongTimestamp(
+    baseTimestamp: LocalDateTime,
+    index: Int,
+): LocalDateTime = baseTimestamp.minusSeconds(index.toLong())
