@@ -1,0 +1,371 @@
+name: Build submitted icons
+
+on:
+  workflow_dispatch:
+
+  # pull_request_target, never pull_request: the scripts that run here are always checked out
+  # from the base revision, so pull request content is only ever read as data - and the token
+  # stays scoped to this repository. A contributor's fork is never written to, which is what
+  # makes this work the same for a fork and for a branch in this repository.
+  pull_request_target:
+    types:
+      - opened
+      - edited
+      - reopened
+      - synchronize
+      - closed
+    paths:
+      - metadata.json
+      - submissions/**/*.svg
+
+concurrency:
+  group: icon-submission-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Open submissions: check the SVG files against the pull request's own metadata
+  # block and show the icons rendered, without touching the contributor's branch.
+  # ─────────────────────────────────────────────────────────────────────────────
+  check:
+    name: Check submission
+    if: github.event_name == 'pull_request_target' && github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # only for the preview branch; nothing else is written
+      issues: write     # the report comments: a pull request's comments are its issue comments
+      pull-requests: write
+    env:
+      ICON_RANDOM_DIGITS: 6
+
+    steps:
+      # The base branch as it stands now, not as it stood when the pull request was opened:
+      # GitHub pins a pull request's base revision at creation, and a script fixed after that
+      # would otherwise never reach an open pull request. Only data - the submission and the
+      # diff below - comes from the pull request's own revisions.
+      - name: Checkout trusted workflow source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+          path: trusted
+          persist-credentials: false
+
+      - name: Checkout pull request head
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          path: submission
+          persist-credentials: false
+
+      - name: Fetch trusted base revision
+        working-directory: submission
+        env:
+          BASE_REPOSITORY: ${{ github.repository }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git remote add upstream "https://github.com/${BASE_REPOSITORY}.git"
+          git fetch --no-tags upstream "$BASE_SHA"
+
+      - name: Check the submission
+        id: check
+        working-directory: submission
+        continue-on-error: true
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set +e
+          output="$(python3 ../trusted/.github/scripts/process_icon_submission.py \
+            --mode pull-request \
+            --event-path "$GITHUB_EVENT_PATH" \
+            --base-sha "$BASE_SHA" \
+            --random-digits "$ICON_RANDOM_DIGITS" 2>&1)"
+          status=$?
+          printf '%s\n' "$output"
+          {
+            echo "status=${status}"
+            echo 'output<<ICON_SUBMISSION_OUTPUT'
+            printf '%s\n' "$output"
+            echo 'ICON_SUBMISSION_OUTPUT'
+          } >> "$GITHUB_OUTPUT"
+          exit 0
+
+      # Fork pull request logs are not always visible to the contributor, so a failed check
+      # explains itself on the pull request instead of only in the run.
+      - name: Explain a failed check on the pull request
+        if: steps.check.outputs.status != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+          CHECK_OUTPUT: ${{ steps.check.outputs.output }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          lines = os.environ["CHECK_OUTPUT"].strip().splitlines()[-30:]
+          body = "\n".join(
+              [
+                  "## Icon submission could not be processed",
+                  "",
+                  "```",
+                  *lines,
+                  "```",
+                  "",
+                  "Fix the submission and push to this branch - the check runs again by itself.",
+                  "The format is described in `README.md` and in the pull request template.",
+              ]
+          )
+          request = urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['REPOSITORY']}/issues/"
+              f"{os.environ['PULL_REQUEST']}/comments",
+              data=json.dumps({"body": body}).encode("utf-8"),
+              method="POST",
+              headers={
+                  "Authorization": f"Bearer {os.environ['GH_TOKEN']}",
+                  "Accept": "application/vnd.github+json",
+                  "Content-Type": "application/json",
+              },
+          )
+          with urllib.request.urlopen(request, timeout=30) as response:
+              print(f"Comment posted ({response.status}).")
+          PY
+          exit 1
+
+      - name: Look for icons to render
+        id: icons
+        if: steps.check.outputs.status == '0'
+        working-directory: submission
+        run: |
+          if git status --porcelain | grep --quiet -E '(svg/|metadata\.json)'; then
+            echo "staged=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "staged=false" >> "$GITHUB_OUTPUT"
+            echo "Nothing new to render."
+          fi
+
+      - name: Install vector preview renderer
+        if: steps.icons.outputs.staged == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes librsvg2-bin
+
+      - name: Render previews
+        if: steps.icons.outputs.staged == 'true'
+        working-directory: submission
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          python3 ../trusted/.github/scripts/icon_preview.py generate \
+            --base-sha "$BASE_SHA" \
+            --metadata metadata.json \
+            --svg-directory svg \
+            --output-directory previews \
+            --manifest /tmp/icon-preview-manifest.json \
+            --renderer /usr/bin/rsvg-convert
+
+      # The rendered PNGs need a public URL for the comment to show them, and the only branch
+      # this job may write to is its own disposable one - per pull request, force-updated on
+      # every run and deleted when the pull request closes.
+      - name: Publish preview images
+        id: previews
+        if: steps.icons.outputs.staged == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/submission"
+          changed="$(git status --porcelain -- previews | awk '{print $2}')"
+          if [ -z "$changed" ]; then
+            echo "No preview images were generated."
+            exit 0
+          fi
+          publish_dir="$(mktemp -d)"
+          while IFS= read -r preview_path; do
+            mkdir -p "$publish_dir/$(dirname "$preview_path")"
+            cp "$GITHUB_WORKSPACE/submission/$preview_path" "$publish_dir/$preview_path"
+          done <<< "$changed"
+          cd "$publish_dir"
+          git init --quiet
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --quiet -b "icon-previews/pr-${PULL_REQUEST}"
+          git add previews
+          git commit --quiet -m "Icon previews for pull request #${PULL_REQUEST}"
+          git push --force --quiet \
+            "https://x-access-token:${GH_TOKEN}@github.com/${REPOSITORY}.git" \
+            "HEAD:refs/heads/icon-previews/pr-${PULL_REQUEST}"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Comment the previews
+        if: steps.previews.outputs.sha != ''
+        working-directory: submission
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+        run: |
+          python3 ../trusted/.github/scripts/icon_preview.py comment \
+            --manifest /tmp/icon-preview-manifest.json \
+            --repository "$REPOSITORY" \
+            --head-repository "$REPOSITORY" \
+            --commit-sha "${{ steps.previews.outputs.sha }}" \
+            --pull-request "$PULL_REQUEST" \
+            --token "$GH_TOKEN"
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Merged: build the pack from the pull request's own metadata block. The
+  # contributor's branch is never written to, so forks work exactly like branches
+  # in this repository do.
+  # ─────────────────────────────────────────────────────────────────────────────
+  publish:
+    name: Publish merged icons
+    if: github.event_name == 'pull_request_target' && github.event.action == 'closed' && github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # commit the generated pack
+      actions: write    # re-run the LunarTune notification, which a token push does not trigger
+    env:
+      ICON_RANDOM_DIGITS: 6
+
+    steps:
+      - name: Checkout the base branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+          fetch-depth: 0
+
+      # The base revision is read from the merge itself rather than from the event: HEAD^1 is
+      # the base branch exactly as it was before this pull request landed, so the generated diff
+      # is the submission and nothing else.
+      - name: Store the merged submissions
+        id: store
+        run: |
+          base_sha="$(git rev-parse HEAD^1)"
+          echo "base_sha=${base_sha}" >> "$GITHUB_OUTPUT"
+          python3 .github/scripts/process_icon_submission.py \
+            --mode pull-request \
+            --event-path "$GITHUB_EVENT_PATH" \
+            --base-sha "$base_sha" \
+            --random-digits "$ICON_RANDOM_DIGITS"
+
+      - name: Install vector preview renderer
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes librsvg2-bin
+
+      - name: Render previews
+        env:
+          BASE_SHA: ${{ steps.store.outputs.base_sha }}
+        run: |
+          python3 .github/scripts/icon_preview.py generate \
+            --base-sha "$BASE_SHA" \
+            --metadata metadata.json \
+            --svg-directory svg \
+            --output-directory previews \
+            --manifest /tmp/icon-preview-manifest.json \
+            --renderer /usr/bin/rsvg-convert
+
+      - name: Commit the generated pack
+        id: commit
+        run: |
+          if git diff --quiet && [ -z "$(git status --short)" ]; then
+            echo "Nothing to publish."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add metadata.json svg submissions previews
+          git commit -m "build(icon-pack): generate submitted vectors"
+          git push origin "HEAD:${{ github.event.pull_request.base.ref }}"
+          echo "published=true" >> "$GITHUB_OUTPUT"
+
+      # Pushes made with the workflow token do not start workflows, so the notification that
+      # normally fires on a push to main has to be asked for explicitly.
+      - name: Notify LunarTune
+        if: steps.commit.outputs.published == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          curl --fail --silent --show-error --request POST \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${REPOSITORY}/actions/workflows/notify-lunartune.yml/dispatches" \
+            --data '{"ref":"main"}'
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Closed either way: the preview branch has served its purpose.
+  # ─────────────────────────────────────────────────────────────────────────────
+  cleanup:
+    name: Drop preview branch
+    if: github.event_name == 'pull_request_target' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Delete the preview branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+        run: |
+          curl --silent --show-error --output /dev/null \
+            --request DELETE \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "Accept: application/vnd.github+json" \
+            --write-out "Preview branch deleted (HTTP %{http_code}).\n" \
+            "https://api.github.com/repos/${REPOSITORY}/git/refs/heads/icon-previews%2Fpr-${PULL_REQUEST}" || true
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Manual: rebuild the pack in place from the SVG sources it already has.
+  # ─────────────────────────────────────────────────────────────────────────────
+  rebuild:
+    name: Reconcile SVG icon pack
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Require a branch
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+        run: |
+          if [ "$REF_TYPE" != "branch" ]; then
+            echo "::error::Manual rebuilds must run against a branch."
+            exit 1
+          fi
+
+      - name: Checkout selected branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Reconcile SVG icons
+        run: |
+          python3 .github/scripts/process_icon_submission.py \
+            --mode rebuild \
+            --random-digits 6
+
+      - name: Commit reconciled icon pack
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_BRANCH: ${{ github.ref_name }}
+        run: |
+          if git diff --quiet && [ -z "$(git status --short)" ]; then
+            echo "No rebuilt changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add metadata.json svg submissions
+          git commit -m "build(icon-pack): reconcile SVG icons"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            "HEAD:${TARGET_BRANCH}"
