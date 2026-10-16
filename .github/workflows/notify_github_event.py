@@ -114,8 +114,11 @@ def main():
         print(f"No message built for event '{event}'; nothing to send.")
         return
 
-    bot_token = os.environ["BOT_TOKEN"]
-    chat_id = os.environ["CHAT_ID"]
+    bot_token = os.environ.get("BOT_TOKEN", "").strip()
+    chat_id = os.environ.get("CHAT_ID", "").strip()
+    if not bot_token or not chat_id:
+        print("Telegram credentials are not configured; skipping notification.")
+        return
     topic_id = os.environ.get("TOPIC_ID") or os.environ.get("LOGS_TOPIC_ID")
 
     telegram_payload = {
