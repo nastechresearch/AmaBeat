@@ -29,4 +29,4 @@ check. Only the files under `submissions/` belong to a submission.
 - [ ] The only files I changed are the ones under `submissions/`.
 - [ ] Every SVG is original work or is licensed for redistribution.
 - [ ] The JSON above is valid and contains one object per submitted SVG.
-- [ ] I grant LunarTune permission to distribute these icons as part of the icon pack.
+- [ ] I grant AmaBeat permission to distribute these icons as part of the icon pack.

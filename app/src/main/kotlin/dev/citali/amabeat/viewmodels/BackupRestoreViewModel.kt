@@ -94,8 +94,8 @@ enum class BackupCategory {
 enum class BackupSource {
     AMABEAT,
 
-    /** Backup written by AmaBeat (same archive layout, different settings root tag and DB version). */
-    AMABEAT,
+    /** Backup written by an older app format with a different settings root tag and DB version. */
+    LEGACY,
 }
 
 data class BackupValidationResult(
@@ -652,7 +652,7 @@ class BackupRestoreViewModel
                     if (includeLibrary && !hasDb) throw IllegalStateException("Backup missing database")
 
                     val source = resolveBackupSource(context, uri, xmlSource)
-                    val isForeignBackup = source == BackupSource.AMABEAT
+                    val isForeignBackup = source == BackupSource.LEGACY
                     val settingsExcludedKeys =
                         if (isForeignBackup) {
                             baseSettingsExcludedKeys + BackupArchiveRepository.FOREIGN_BACKUP_EXCLUDED_PREFERENCE_KEYS
@@ -823,8 +823,8 @@ class BackupRestoreViewModel
                             if (index >= 0 && cursor.moveToFirst()) cursor.getString(index) else null
                         }
                 }.getOrNull() ?: uri.lastPathSegment.orEmpty()
-            return if (displayName.substringAfterLast('/').startsWith(AMABEAT_FILE_PREFIX, ignoreCase = true)) {
-                BackupSource.AMABEAT
+            return if (displayName.substringAfterLast('/').startsWith(LEGACY_FILE_PREFIX, ignoreCase = true)) {
+                BackupSource.LEGACY
             } else {
                 BackupSource.AMABEAT
             }
@@ -832,7 +832,7 @@ class BackupRestoreViewModel
 
         /**
          * Identifies the app that wrote a `settings.xml` by its document root
-         * (`AmaBeatBackup` vs AmaBeat's `AmaBeatBackup`). Only the first
+         * (`AmaBeatBackup` versus the legacy backup root). Only the first
          * start tag is read; unknown roots are treated as AmaBeat so older archives
          * keep restoring unchanged. The stream is left open (the caller owns the zip).
          */
@@ -843,8 +843,8 @@ class BackupRestoreViewModel
                 var eventType = parser.eventType
                 while (eventType != XmlPullParser.END_DOCUMENT) {
                     if (eventType == XmlPullParser.START_TAG) {
-                        return@runCatching if (parser.name.equals(AMABEAT_SETTINGS_ROOT_TAG, ignoreCase = true)) {
-                            BackupSource.AMABEAT
+                        return@runCatching if (parser.name.equals(LEGACY_SETTINGS_ROOT_TAG, ignoreCase = true)) {
+                            BackupSource.LEGACY
                         } else {
                             BackupSource.AMABEAT
                         }
@@ -1173,8 +1173,8 @@ class BackupRestoreViewModel
         companion object {
             const val SETTINGS_FILENAME = "settings.preferences_pb"
             const val SETTINGS_XML_FILENAME = BackupArchiveRepository.SETTINGS_XML_FILENAME
-            const val AMABEAT_SETTINGS_ROOT_TAG = "AmaBeatBackup"
-            const val AMABEAT_FILE_PREFIX = "AmaBeat"
+            const val LEGACY_SETTINGS_ROOT_TAG = "ArchiveTuneBackup"
+            const val LEGACY_FILE_PREFIX = "ArchiveTune"
 
             val ACCOUNT_PREF_KEYS: Set<String> = BackupArchiveRepository.ACCOUNT_PREFERENCE_KEYS
         }
