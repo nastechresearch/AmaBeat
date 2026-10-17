@@ -519,10 +519,9 @@ fun Thumbnail(
                                                 .background(MaterialTheme.colorScheme.surfaceVariant),
                                         contentAlignment = Alignment.Center,
                                     ) {
-                                        Icon(
+                                        Image(
                                             painter = painterResource(R.drawable.about_splash),
                                             contentDescription = stringResource(R.string.hide_player_thumbnail),
-                                            tint = textBackgroundColor.copy(alpha = 0.7f),
                                             modifier = Modifier.size(120.dp),
                                         )
                                     }

@@ -29,6 +29,7 @@ OPAQUE_OUTPUTS = {
 
 TRANSPARENT_OUTPUTS = {
     ROOT / "assets/amabeat-icon-transparent.png": (2048, 2048),
+    ROOT / "app/src/main/res/drawable/about_appbar.png": (160, 160),
     ROOT / "website/assets/icon-fg.png": (1728, 1728),
 }
 

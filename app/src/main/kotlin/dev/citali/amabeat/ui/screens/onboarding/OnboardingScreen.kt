@@ -19,6 +19,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -391,7 +392,7 @@ private fun SunnyIdentityPanel(
             shadowElevation = 1.dp,
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(
+                Image(
                     painter = painterResource(iconResId),
                     contentDescription = null,
                     modifier = Modifier.size(150.dp),
