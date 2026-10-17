@@ -7,7 +7,7 @@
 
 package dev.citali.amabeat.extensions
 
-import moe.rukamori.archivetune.innertube.models.WatchEndpoint
+import moe.rukamori.amabeat.innertube.models.WatchEndpoint
 import dev.citali.amabeat.models.MediaMetadata
 import dev.citali.amabeat.models.PersistQueue
 import dev.citali.amabeat.models.QueueData

@@ -23,10 +23,10 @@ import dev.citali.amabeat.constants.SavedAccountsKey
 import dev.citali.amabeat.constants.SelectedYtmPlaylistsKey
 import dev.citali.amabeat.constants.VisitorDataKey
 import dev.citali.amabeat.constants.YtmSyncKey
-import moe.rukamori.archivetune.innertube.PlaybackAuthState
-import moe.rukamori.archivetune.innertube.YouTube
-import moe.rukamori.archivetune.innertube.models.AccountInfo
-import moe.rukamori.archivetune.innertube.utils.hasYouTubeLoginCookie
+import moe.rukamori.amabeat.innertube.PlaybackAuthState
+import moe.rukamori.amabeat.innertube.YouTube
+import moe.rukamori.amabeat.innertube.models.AccountInfo
+import moe.rukamori.amabeat.innertube.utils.hasYouTubeLoginCookie
 import dev.citali.amabeat.utils.SavedAccount
 import dev.citali.amabeat.utils.dataStore
 import dev.citali.amabeat.utils.decodeSavedAccounts

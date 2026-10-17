@@ -9,7 +9,7 @@ package dev.citali.amabeat.lyrics
 
 import android.content.Context
 import dev.citali.amabeat.constants.EnableSimpMusicLyricsKey
-import moe.rukamori.archivetune.simpmusic.SimpMusicLyrics
+import moe.rukamori.amabeat.simpmusic.SimpMusicLyrics
 import dev.citali.amabeat.utils.dataStore
 import dev.citali.amabeat.utils.get
 

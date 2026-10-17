@@ -107,8 +107,8 @@ private fun RestoreBackupFileScreen(
     LaunchedEffect(uri) {
         val result = viewModel.validateBackup(context, uri)
         if (result.isValid) {
-            if (result.source == BackupSource.ARCHIVETUNE) {
-                Toast.makeText(context, R.string.restore_archivetune_backup_detected, Toast.LENGTH_LONG).show()
+            if (result.source == BackupSource.AMABEAT) {
+                Toast.makeText(context, R.string.restore_amabeat_backup_detected, Toast.LENGTH_LONG).show()
             }
             selectedCategories = result.availableCategories
             screenState = BackupScreenState.Ready(availableCategories = result.availableCategories)

@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import dev.citali.amabeat.innertube.ChartsApi
-import moe.rukamori.archivetune.innertube.pages.ChartsPage
+import moe.rukamori.amabeat.innertube.pages.ChartsPage
 import javax.inject.Inject
 
 @HiltViewModel

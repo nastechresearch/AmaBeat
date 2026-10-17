@@ -9,7 +9,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 SOLAR_JSON = Path("/tmp/solar/solar.json")
-DRAWABLE = Path("/home/user/ArchiveTune/app/src/main/res/drawable")
+DRAWABLE = Path("/home/user/AmaBeat/app/src/main/res/drawable")
 
 SKIP = {
     "about_appbar.xml",

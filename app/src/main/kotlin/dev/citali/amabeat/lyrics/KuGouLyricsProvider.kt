@@ -9,7 +9,7 @@ package dev.citali.amabeat.lyrics
 
 import android.content.Context
 import dev.citali.amabeat.constants.EnableKugouKey
-import moe.rukamori.archivetune.kugou.KuGou
+import moe.rukamori.amabeat.kugou.KuGou
 import dev.citali.amabeat.utils.dataStore
 import dev.citali.amabeat.utils.get
 

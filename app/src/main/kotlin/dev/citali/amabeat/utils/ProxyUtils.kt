@@ -7,7 +7,7 @@
 
 package dev.citali.amabeat.utils
 
-import moe.rukamori.archivetune.innertube.YouTube
+import moe.rukamori.amabeat.innertube.YouTube
 import java.net.InetSocketAddress
 import java.net.Proxy
 

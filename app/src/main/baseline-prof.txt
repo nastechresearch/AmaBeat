@@ -1,4 +1,4 @@
-# AmaBeat hand-curated Baseline Profile (ported from 4nx3b/ArchiveTune).
+# AmaBeat hand-curated Baseline Profile (ported from 4nx3b/AmaBeat).
 #
 # CI has no KVM-capable Android emulator (GitHub-hosted runners cannot run
 # instrumented Macrobenchmark journeys), so this profile is hand-curated after
@@ -58,7 +58,7 @@ HSPLdev/citali/amabeat/MainActivity$**;->onPostFling(**)**
 
 # ---- Home screen ------------------------------------------------------------
 # HomeScreen and the main SearchScreen live directly in ui/screens in AmaBeat,
-# not in ArchiveTune's old ui/screens/home package.
+# not in AmaBeat's old ui/screens/home package.
 HSPLdev/citali/amabeat/viewmodels/HomeViewModel;->**(**)**
 HSPLdev/citali/amabeat/ui/screens/HomeScreenKt;->**(**)**
 HSPLdev/citali/amabeat/ui/screens/SearchScreenKt;->**(**)**
@@ -101,8 +101,8 @@ Ldev/citali/amabeat/playback/**;
 HSPLdev/citali/amabeat/playback/PlayerConnection;->**(**)**
 
 # ---- InnerTube networking + models (core and app-side) ---------------------
-Lmoe/rukamori/archivetune/innertube/**;
-HSPLmoe/rukamori/archivetune/innertube/**;->**(**)**
+Lmoe/rukamori/amabeat/innertube/**;
+HSPLmoe/rukamori/amabeat/innertube/**;->**(**)**
 # App-side charts fetcher: ChartsApi plus its converters parse the entire
 # charts browse on the load path, and had no rule at all - not even a class
 # load - so every convertToChartItem / convertMusicTwoRowItem call ran

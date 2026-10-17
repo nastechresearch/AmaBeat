@@ -25,11 +25,11 @@ import dev.citali.amabeat.db.MusicDatabase
 import dev.citali.amabeat.db.entities.Song
 import dev.citali.amabeat.extensions.toEnum
 import dev.citali.amabeat.utils.dataStore
-import moe.rukamori.archivetune.innertube.YouTube
-import moe.rukamori.archivetune.innertube.models.Album
-import moe.rukamori.archivetune.innertube.models.Artist
-import moe.rukamori.archivetune.innertube.models.SongItem
-import moe.rukamori.archivetune.innertube.models.WatchEndpoint
+import moe.rukamori.amabeat.innertube.YouTube
+import moe.rukamori.amabeat.innertube.models.Album
+import moe.rukamori.amabeat.innertube.models.Artist
+import moe.rukamori.amabeat.innertube.models.SongItem
+import moe.rukamori.amabeat.innertube.models.WatchEndpoint
 import java.util.Locale
 import javax.inject.Inject
 

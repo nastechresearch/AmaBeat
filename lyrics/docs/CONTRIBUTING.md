@@ -28,7 +28,7 @@ This project follows the [Contributor Covenant](https://www.contributor-covenant
 |---|---|
 | Provider object | `KuGou`, `LrcLib`, `PaxsenixLyrics` |
 | Source file | `KuGou.kt`, `LrcLib.kt` |
-| Package | `moe.rukamori.archivetune.<name>` |
+| Package | `moe.rukamori.amabeat.<name>` |
 | Model files | `models/Track.kt`, `models/LyricsResponse.kt` |
 
 ### Format
@@ -44,6 +44,6 @@ Keep files under 500 lines where possible. Split models into separate files when
 
 ## What not to contribute
 
-- Android-specific code (belongs in the main ArchiveTune repo)
+- Android-specific code (belongs in the main AmaBeat repo)
 - Providers that require authentication tokens hardcoded in the module
 - Changes that introduce cross-module dependencies

@@ -77,8 +77,8 @@ import dev.citali.amabeat.constants.ListThumbnailSize
 import dev.citali.amabeat.constants.SpeedDialSongIdsKey
 import dev.citali.amabeat.db.entities.Song
 import dev.citali.amabeat.extensions.toMediaItem
-import moe.rukamori.archivetune.innertube.YouTube
-import moe.rukamori.archivetune.innertube.models.AlbumItem
+import moe.rukamori.amabeat.innertube.YouTube
+import moe.rukamori.amabeat.innertube.models.AlbumItem
 import dev.citali.amabeat.playback.ExoDownloadService
 import dev.citali.amabeat.playback.queues.YouTubeAlbumRadio
 import dev.citali.amabeat.ui.component.ListDialog

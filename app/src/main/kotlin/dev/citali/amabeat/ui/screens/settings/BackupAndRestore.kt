@@ -191,9 +191,9 @@ fun BackupAndRestore(
                 coroutineScope.launch {
                     val result = viewModel.validateBackup(context, uri)
                     if (result.isValid) {
-                        if (result.source == BackupSource.ARCHIVETUNE) {
+                        if (result.source == BackupSource.AMABEAT) {
                             Toast
-                                .makeText(context, R.string.restore_archivetune_backup_detected, Toast.LENGTH_LONG)
+                                .makeText(context, R.string.restore_amabeat_backup_detected, Toast.LENGTH_LONG)
                                 .show()
                         }
                         pendingRestoreCategories = result.availableCategories

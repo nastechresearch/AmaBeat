@@ -40,7 +40,7 @@ import androidx.media3.ui.compose.ContentFrame
 import androidx.media3.ui.compose.SURFACE_TYPE_TEXTURE_VIEW
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import moe.rukamori.archivetune.innertube.YouTube
+import moe.rukamori.amabeat.innertube.YouTube
 import dev.citali.amabeat.utils.StreamClientUtils
 import okhttp3.OkHttpClient
 import timber.log.Timber

@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import dev.citali.amabeat.db.MusicDatabase
 import dev.citali.amabeat.db.entities.PlaylistEntity
-import moe.rukamori.archivetune.innertube.YouTube
+import moe.rukamori.amabeat.innertube.YouTube
 import java.io.ByteArrayOutputStream
 import java.time.LocalDateTime
 import javax.inject.Inject

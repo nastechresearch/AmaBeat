@@ -53,11 +53,11 @@ import dev.citali.amabeat.db.entities.Song
 import dev.citali.amabeat.extensions.metadata
 import dev.citali.amabeat.extensions.toMediaItem
 import dev.citali.amabeat.extensions.toggleRepeatMode
-import moe.rukamori.archivetune.innertube.YouTube
-import moe.rukamori.archivetune.innertube.models.PlaylistItem
-import moe.rukamori.archivetune.innertube.models.SongItem
-import moe.rukamori.archivetune.innertube.models.filterExplicit
-import moe.rukamori.archivetune.innertube.models.filterVideo
+import moe.rukamori.amabeat.innertube.YouTube
+import moe.rukamori.amabeat.innertube.models.PlaylistItem
+import moe.rukamori.amabeat.innertube.models.SongItem
+import moe.rukamori.amabeat.innertube.models.filterExplicit
+import moe.rukamori.amabeat.innertube.models.filterVideo
 import dev.citali.amabeat.models.PersistQueue
 import dev.citali.amabeat.playback.MusicService.Companion.PERSISTENT_QUEUE_FILE
 import dev.citali.amabeat.utils.dataStore

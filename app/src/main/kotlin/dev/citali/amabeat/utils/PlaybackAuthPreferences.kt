@@ -23,8 +23,8 @@ import dev.citali.amabeat.constants.PoTokenPlayerKey
 import dev.citali.amabeat.constants.PoTokenSourceUrlKey
 import dev.citali.amabeat.constants.VisitorDataKey
 import dev.citali.amabeat.constants.WebClientPoTokenEnabledKey
-import moe.rukamori.archivetune.innertube.PlaybackAuthState
-import moe.rukamori.archivetune.innertube.YouTube
+import moe.rukamori.amabeat.innertube.PlaybackAuthState
+import moe.rukamori.amabeat.innertube.YouTube
 
 fun Preferences.toPlaybackAuthState(): PlaybackAuthState =
     PlaybackAuthState(

@@ -207,9 +207,9 @@ class BackupArchiveRepository
 
             /**
              * Preference keys that must never be imported from a backup written by
-             * another app (ArchiveTune). They cache the *other* project's GitHub
+             * another app (AmaBeat). They cache the *other* project's GitHub
              * release feed, update reminders and contributor list; importing them
-             * would make the updater offer ArchiveTune releases as AmaBeat updates.
+             * would make the updater offer AmaBeat releases as AmaBeat updates.
              */
             val FOREIGN_BACKUP_EXCLUDED_PREFERENCE_KEYS: Set<String> =
                 setOf(
@@ -227,7 +227,7 @@ class BackupArchiveRepository
                     "lastNotifiedVersion",
                     "lastUpdateCheck",
                     // Discord sessions are bound to the issuing application id; the
-                    // ArchiveTune token cannot be used with AmaBeat's app id.
+                    // AmaBeat token cannot be used with AmaBeat's app id.
                     "discordToken",
                     "discordRefreshToken",
                     "discordTokenExpiresAt",

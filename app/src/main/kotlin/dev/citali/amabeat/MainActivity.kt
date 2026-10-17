@@ -291,11 +291,11 @@ import dev.citali.amabeat.db.entities.Playlist
 import dev.citali.amabeat.db.entities.SearchHistory
 import dev.citali.amabeat.db.entities.Song
 import dev.citali.amabeat.extensions.toMediaItem
-import moe.rukamori.archivetune.innertube.YouTube
-import moe.rukamori.archivetune.innertube.models.AlbumItem
-import moe.rukamori.archivetune.innertube.models.ArtistItem
-import moe.rukamori.archivetune.innertube.models.PlaylistItem
-import moe.rukamori.archivetune.innertube.models.SongItem
+import moe.rukamori.amabeat.innertube.YouTube
+import moe.rukamori.amabeat.innertube.models.AlbumItem
+import moe.rukamori.amabeat.innertube.models.ArtistItem
+import moe.rukamori.amabeat.innertube.models.PlaylistItem
+import moe.rukamori.amabeat.innertube.models.SongItem
 import dev.citali.amabeat.models.toMediaMetadata
 import dev.citali.amabeat.musicrecognition.ACTION_MUSIC_RECOGNITION
 import dev.citali.amabeat.musicrecognition.MusicRecognitionRoute
@@ -1177,7 +1177,7 @@ class MainActivity : FragmentActivity() {
                     val navVisibleHeight = NavigationBarHeight * navigationBarHeightMultiplier
 
                     // Beta: scroll-driven navigation bar hide, reimplemented from
-                    // scratch after the ArchiveTune port proved unsound: hiding now
+                    // scratch after the AmaBeat port proved unsound: hiding now
                     // changes no layout at all. One Animatable progress (0 visible,
                     // 1 away) is dragged 1:1 by consumed scroll over a fixed travel,
                     // settled by a spring at fling end, and read only by graphics
@@ -2393,7 +2393,7 @@ class MainActivity : FragmentActivity() {
                                                                             } else {
                                                                                 YouTubeQueue(
                                                                                     endpoint =
-                                                                                        moe.rukamori.archivetune.innertube.models
+                                                                                        moe.rukamori.amabeat.innertube.models
                                                                                             .WatchEndpoint(videoId = song.id),
                                                                                     preloadItem = null,
                                                                                     followAutomixPreview = true,

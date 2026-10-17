@@ -77,7 +77,7 @@ import dev.citali.amabeat.ui.component.ScreenImageHeader
 import dev.citali.amabeat.utils.rememberPreference
 import dev.citali.amabeat.ui.utils.SnapLayoutInfoProvider
 import dev.citali.amabeat.viewmodels.HomeViewModel
-import moe.rukamori.archivetune.innertube.pages.HomePage
+import moe.rukamori.amabeat.innertube.pages.HomePage
 
 private val HomeFeedMaxWidth = 1_200.dp
 private val HomeSectionSpacing = 18.dp

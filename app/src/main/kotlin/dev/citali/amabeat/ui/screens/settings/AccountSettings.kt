@@ -134,8 +134,8 @@ import dev.citali.amabeat.constants.UseLoginForBrowse
 import dev.citali.amabeat.constants.VisitorDataKey
 import dev.citali.amabeat.constants.WebClientPoTokenEnabledKey
 import dev.citali.amabeat.constants.YtmSyncKey
-import moe.rukamori.archivetune.innertube.YouTube
-import moe.rukamori.archivetune.innertube.utils.hasYouTubeLoginCookie
+import moe.rukamori.amabeat.innertube.YouTube
+import moe.rukamori.amabeat.innertube.utils.hasYouTubeLoginCookie
 import dev.citali.amabeat.ui.component.IconButton
 import dev.citali.amabeat.ui.component.InfoLabel
 import dev.citali.amabeat.ui.component.TextFieldDialog

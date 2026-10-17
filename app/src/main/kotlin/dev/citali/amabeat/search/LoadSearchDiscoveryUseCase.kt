@@ -9,10 +9,10 @@ package dev.citali.amabeat.search
 
 import androidx.compose.runtime.Immutable
 import com.google.common.collect.ImmutableList
-import moe.rukamori.archivetune.innertube.models.AlbumItem
-import moe.rukamori.archivetune.innertube.models.ArtistItem
-import moe.rukamori.archivetune.innertube.models.SongItem
-import moe.rukamori.archivetune.innertube.pages.MoodAndGenres
+import moe.rukamori.amabeat.innertube.models.AlbumItem
+import moe.rukamori.amabeat.innertube.models.ArtistItem
+import moe.rukamori.amabeat.innertube.models.SongItem
+import moe.rukamori.amabeat.innertube.pages.MoodAndGenres
 import dev.citali.amabeat.repository.SearchDiscoveryRepository
 import javax.inject.Inject
 

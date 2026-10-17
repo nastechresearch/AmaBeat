@@ -1,7 +1,7 @@
 name: Notify GitHub events
 
 # Mirrors repo activity (stars, forks, issues, comments, PRs, workflow results)
-# into the Telegram logs topic, styled like ArchiveTune's notifier bot.
+# into the Telegram logs topic, styled like AmaBeat's notifier bot.
 
 on:
   watch:

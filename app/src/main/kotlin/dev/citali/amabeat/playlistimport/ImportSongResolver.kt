@@ -15,8 +15,8 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import dev.citali.amabeat.db.entities.ArtistEntity
 import dev.citali.amabeat.db.entities.Song
-import moe.rukamori.archivetune.innertube.YouTube
-import moe.rukamori.archivetune.innertube.models.SongItem
+import moe.rukamori.amabeat.innertube.YouTube
+import moe.rukamori.amabeat.innertube.models.SongItem
 import dev.citali.amabeat.models.ImportSource
 import dev.citali.amabeat.models.ImportedSongResult
 import dev.citali.amabeat.models.toMediaMetadata

@@ -45,10 +45,10 @@ import dev.citali.amabeat.extensions.filterBlockedArtists
 import dev.citali.amabeat.extensions.filterExplicit
 import dev.citali.amabeat.extensions.filterExplicitAlbums
 import dev.citali.amabeat.extensions.filterVideo
-import moe.rukamori.archivetune.innertube.YouTube
-import moe.rukamori.archivetune.innertube.models.filterExplicit
-import moe.rukamori.archivetune.innertube.models.filterVideo
-import moe.rukamori.archivetune.innertube.pages.ArtistPage
+import moe.rukamori.amabeat.innertube.YouTube
+import moe.rukamori.amabeat.innertube.models.filterExplicit
+import moe.rukamori.amabeat.innertube.models.filterVideo
+import moe.rukamori.amabeat.innertube.pages.ArtistPage
 import dev.citali.amabeat.utils.dataStore
 import dev.citali.amabeat.utils.get
 import dev.citali.amabeat.utils.reportException

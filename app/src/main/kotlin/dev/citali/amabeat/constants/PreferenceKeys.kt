@@ -41,7 +41,7 @@ val PerSongTagsKey = stringPreferencesKey("perSongTags")
 val NeverRecommendSongIdsKey = stringPreferencesKey("neverRecommendSongIds")
 val ShowPlayerVolumeBarKey = booleanPreferencesKey("showPlayerVolumeBar")
 val HidePlayerThumbnailKey = booleanPreferencesKey("hidePlayerThumbnail")
-val AmaBeatCanvasKey = booleanPreferencesKey("archiveTuneCanvas")
+val AmaBeatCanvasKey = booleanPreferencesKey("amaBeatCanvas")
 val ThumbnailCornerRadiusKey = floatPreferencesKey("thumbnailCornerRadius")
 val CropThumbnailToSquareKey = booleanPreferencesKey("cropThumbnailToSquare")
 

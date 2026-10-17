@@ -19,8 +19,8 @@ import kotlinx.coroutines.withContext
 import dev.citali.amabeat.constants.HistorySource
 import dev.citali.amabeat.db.MusicDatabase
 import dev.citali.amabeat.db.entities.EventWithSong
-import moe.rukamori.archivetune.innertube.YouTube
-import moe.rukamori.archivetune.innertube.pages.HistoryPage
+import moe.rukamori.amabeat.innertube.YouTube
+import moe.rukamori.amabeat.innertube.pages.HistoryPage
 import dev.citali.amabeat.utils.reportException
 import timber.log.Timber
 import java.time.DayOfWeek

@@ -49,7 +49,7 @@ import dev.citali.amabeat.LocalPlayerConnection
 import dev.citali.amabeat.R
 import dev.citali.amabeat.extensions.toMediaItem
 import dev.citali.amabeat.extensions.togglePlayPause
-import moe.rukamori.archivetune.innertube.models.SongItem
+import moe.rukamori.amabeat.innertube.models.SongItem
 import dev.citali.amabeat.playback.queues.ListQueue
 import dev.citali.amabeat.ui.component.DefaultDialog
 import dev.citali.amabeat.ui.component.IconButton

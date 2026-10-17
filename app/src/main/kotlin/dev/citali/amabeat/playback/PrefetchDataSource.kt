@@ -29,7 +29,7 @@ import java.util.UUID
  * Download-only [DataSource] that fetches the requested byte range to a temp file at full
  * connection speed first, then serves it to ExoPlayer's cache pipeline from local disk.
  *
- * This is the 4nx3b/ArchiveTune speed trick (their PRDownloader bridge), re-implemented on
+ * This is the 4nx3b/AmaBeat speed trick (their PRDownloader bridge), re-implemented on
  * our own OkHttp stack instead of the 2019-era PRDownloader library. That keeps proxy
  * support, per-client request profiles, and the 403/410 URL-refresh invalidation working,
  * and it removes the failure modes behind their bulk-download mass failures:

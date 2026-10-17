@@ -7,12 +7,12 @@
 
 package dev.citali.amabeat.extensions
 
-import moe.rukamori.archivetune.innertube.models.AlbumItem
-import moe.rukamori.archivetune.innertube.models.ArtistItem
-import moe.rukamori.archivetune.innertube.models.PlaylistItem
-import moe.rukamori.archivetune.innertube.models.SongItem
-import moe.rukamori.archivetune.innertube.models.YTItem
-import moe.rukamori.archivetune.innertube.pages.BrowseResult
+import moe.rukamori.amabeat.innertube.models.AlbumItem
+import moe.rukamori.amabeat.innertube.models.ArtistItem
+import moe.rukamori.amabeat.innertube.models.PlaylistItem
+import moe.rukamori.amabeat.innertube.models.SongItem
+import moe.rukamori.amabeat.innertube.models.YTItem
+import moe.rukamori.amabeat.innertube.pages.BrowseResult
 
 fun <T : YTItem> List<T>.filterBlockedArtists(blockedArtistIds: Set<String>): List<T> {
     if (blockedArtistIds.isEmpty()) return this

@@ -11,8 +11,8 @@ import android.icu.text.Transliterator
 import android.text.format.DateUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import moe.rukamori.archivetune.betterlyrics.QRCParser
-import moe.rukamori.archivetune.betterlyrics.TTMLParser
+import moe.rukamori.amabeat.betterlyrics.QRCParser
+import moe.rukamori.amabeat.betterlyrics.TTMLParser
 import dev.citali.amabeat.db.entities.LyricsEntity
 import java.lang.Character.UnicodeScript
 

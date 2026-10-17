@@ -36,7 +36,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import dev.citali.amabeat.LocalPlayerAwareWindowInsets
 import dev.citali.amabeat.R
-import moe.rukamori.archivetune.innertube.utils.hasYouTubeLoginCookie
+import moe.rukamori.amabeat.innertube.utils.hasYouTubeLoginCookie
 import dev.citali.amabeat.ui.component.IconButton
 import dev.citali.amabeat.ui.utils.backToMain
 import dev.citali.amabeat.utils.resetAuthWebViewSession

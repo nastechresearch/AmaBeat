@@ -90,8 +90,8 @@ import dev.citali.amabeat.LocalDatabase
 import dev.citali.amabeat.R
 import dev.citali.amabeat.constants.InnerTubeCookieKey
 import dev.citali.amabeat.db.entities.Playlist
-import moe.rukamori.archivetune.innertube.YouTube
-import moe.rukamori.archivetune.innertube.utils.hasYouTubeLoginCookie
+import moe.rukamori.amabeat.innertube.YouTube
+import moe.rukamori.amabeat.innertube.utils.hasYouTubeLoginCookie
 import dev.citali.amabeat.ui.component.CreatePlaylistDialog
 import dev.citali.amabeat.ui.component.DefaultDialog
 import dev.citali.amabeat.ui.component.PlaylistListItem

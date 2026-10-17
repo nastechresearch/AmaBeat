@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.supervisorScope
 import dev.citali.amabeat.constants.QuickPicks
 import dev.citali.amabeat.constants.QuickPicksDisplayMode
-import moe.rukamori.archivetune.innertube.models.SongItem
+import moe.rukamori.amabeat.innertube.models.SongItem
 import javax.inject.Inject
 
 class ObserveHomePresentationPreferencesUseCase

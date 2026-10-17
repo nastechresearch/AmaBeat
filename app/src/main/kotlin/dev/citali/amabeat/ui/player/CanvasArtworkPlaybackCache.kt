@@ -26,7 +26,7 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import dev.citali.amabeat.canvas.models.CanvasArtwork
-import moe.rukamori.archivetune.innertube.YouTube
+import moe.rukamori.amabeat.innertube.YouTube
 import dev.citali.amabeat.storage.StorageFolderKind
 import dev.citali.amabeat.storage.StorageLocationRepository
 import dev.citali.amabeat.utils.StreamClientUtils

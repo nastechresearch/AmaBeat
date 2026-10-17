@@ -10,9 +10,9 @@ package dev.citali.amabeat.models
 import androidx.compose.runtime.Immutable
 import dev.citali.amabeat.db.entities.Song
 import dev.citali.amabeat.db.entities.SongEntity
-import moe.rukamori.archivetune.innertube.models.SongItem
-import moe.rukamori.archivetune.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_OMV
-import moe.rukamori.archivetune.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_UGC
+import moe.rukamori.amabeat.innertube.models.SongItem
+import moe.rukamori.amabeat.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_OMV
+import moe.rukamori.amabeat.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_UGC
 import dev.citali.amabeat.ui.utils.YtimgResizePolicy
 import dev.citali.amabeat.ui.utils.resize
 import java.io.Serializable

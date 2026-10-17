@@ -11,7 +11,7 @@ package dev.citali.amabeat.ui.player
 
 /*
  * Apple Music player design (PlayerDesignStyle.V10). Lyrics behaviour ported from
- * 4nx3b/ArchiveTune (AppleMusicPlayer.kt): inline word-synced lyrics under a mini header,
+ * 4nx3b/AmaBeat (AppleMusicPlayer.kt): inline word-synced lyrics under a mini header,
  * auto-hiding controls, and the lyrics menu on the header overflow button.
  */
 
@@ -222,7 +222,7 @@ internal fun AppleMusicPortraitContent(
     onArtistClick: (artistId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Lyrics (ported from ArchiveTune's AppleMusicPlayer): the artwork collapses into a 56dp mini
+    // Lyrics (ported from AmaBeat's AppleMusicPlayer): the artwork collapses into a 56dp mini
     // header thumbnail beside the credits, the word-synced lyrics (LyricsEnhanced / LyricsV2, per the
     // lyrics mode setting) fade in below after a short deferral, and the controls auto-hide after 5s
     // while reading — a tap anywhere brings them back.

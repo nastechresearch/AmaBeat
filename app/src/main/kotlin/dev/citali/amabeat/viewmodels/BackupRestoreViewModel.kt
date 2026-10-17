@@ -94,8 +94,8 @@ enum class BackupCategory {
 enum class BackupSource {
     AMABEAT,
 
-    /** Backup written by ArchiveTune (same archive layout, different settings root tag and DB version). */
-    ARCHIVETUNE,
+    /** Backup written by AmaBeat (same archive layout, different settings root tag and DB version). */
+    AMABEAT,
 }
 
 data class BackupValidationResult(
@@ -652,7 +652,7 @@ class BackupRestoreViewModel
                     if (includeLibrary && !hasDb) throw IllegalStateException("Backup missing database")
 
                     val source = resolveBackupSource(context, uri, xmlSource)
-                    val isForeignBackup = source == BackupSource.ARCHIVETUNE
+                    val isForeignBackup = source == BackupSource.AMABEAT
                     val settingsExcludedKeys =
                         if (isForeignBackup) {
                             baseSettingsExcludedKeys + BackupArchiveRepository.FOREIGN_BACKUP_EXCLUDED_PREFERENCE_KEYS
@@ -748,7 +748,7 @@ class BackupRestoreViewModel
                     var databasePrepared = true
                     if (includeLibrary) {
                         // Must run before Room touches the file: a database with a higher
-                        // user_version (ArchiveTune, or a newer AmaBeat) would otherwise be
+                        // user_version (AmaBeat, or a newer AmaBeat) would otherwise be
                         // wiped by fallbackToDestructiveMigrationOnDowngrade on next launch.
                         emit(context.getString(R.string.backup_step_checkpoint_database), indeterminate = true)
                         databasePrepared =
@@ -806,7 +806,7 @@ class BackupRestoreViewModel
         /**
          * Decides which app wrote the archive. The `settings.xml` root tag is
          * authoritative; when the archive has no settings (library-only backup) the
-         * file name is used, since ArchiveTune names its archives `ArchiveTune_….backup`.
+         * file name is used, since AmaBeat names its archives `AmaBeat_….backup`.
          */
         private fun resolveBackupSource(
             context: Context,
@@ -823,8 +823,8 @@ class BackupRestoreViewModel
                             if (index >= 0 && cursor.moveToFirst()) cursor.getString(index) else null
                         }
                 }.getOrNull() ?: uri.lastPathSegment.orEmpty()
-            return if (displayName.substringAfterLast('/').startsWith(ARCHIVETUNE_FILE_PREFIX, ignoreCase = true)) {
-                BackupSource.ARCHIVETUNE
+            return if (displayName.substringAfterLast('/').startsWith(AMABEAT_FILE_PREFIX, ignoreCase = true)) {
+                BackupSource.AMABEAT
             } else {
                 BackupSource.AMABEAT
             }
@@ -832,7 +832,7 @@ class BackupRestoreViewModel
 
         /**
          * Identifies the app that wrote a `settings.xml` by its document root
-         * (`AmaBeatBackup` vs ArchiveTune's `ArchiveTuneBackup`). Only the first
+         * (`AmaBeatBackup` vs AmaBeat's `AmaBeatBackup`). Only the first
          * start tag is read; unknown roots are treated as AmaBeat so older archives
          * keep restoring unchanged. The stream is left open (the caller owns the zip).
          */
@@ -843,8 +843,8 @@ class BackupRestoreViewModel
                 var eventType = parser.eventType
                 while (eventType != XmlPullParser.END_DOCUMENT) {
                     if (eventType == XmlPullParser.START_TAG) {
-                        return@runCatching if (parser.name.equals(ARCHIVETUNE_SETTINGS_ROOT_TAG, ignoreCase = true)) {
-                            BackupSource.ARCHIVETUNE
+                        return@runCatching if (parser.name.equals(AMABEAT_SETTINGS_ROOT_TAG, ignoreCase = true)) {
+                            BackupSource.AMABEAT
                         } else {
                             BackupSource.AMABEAT
                         }
@@ -1173,8 +1173,8 @@ class BackupRestoreViewModel
         companion object {
             const val SETTINGS_FILENAME = "settings.preferences_pb"
             const val SETTINGS_XML_FILENAME = BackupArchiveRepository.SETTINGS_XML_FILENAME
-            const val ARCHIVETUNE_SETTINGS_ROOT_TAG = "ArchiveTuneBackup"
-            const val ARCHIVETUNE_FILE_PREFIX = "ArchiveTune"
+            const val AMABEAT_SETTINGS_ROOT_TAG = "AmaBeatBackup"
+            const val AMABEAT_FILE_PREFIX = "AmaBeat"
 
             val ACCOUNT_PREF_KEYS: Set<String> = BackupArchiveRepository.ACCOUNT_PREFERENCE_KEYS
         }

@@ -39,7 +39,7 @@
 <hr />
 
 > [!NOTE]  
-> AmaBeat is a Custom Vibecoded(currently) fork of Archivetune
+> AmaBeat is a Custom Vibecoded(currently) fork of AmaBeat
 
 
 

@@ -64,7 +64,7 @@ import dev.citali.amabeat.R
 import dev.citali.amabeat.db.entities.PlaylistSongMap
 import dev.citali.amabeat.db.entities.Song
 import dev.citali.amabeat.extensions.toMediaItem
-import moe.rukamori.archivetune.innertube.YouTube
+import moe.rukamori.amabeat.innertube.YouTube
 import dev.citali.amabeat.models.MediaMetadata
 import dev.citali.amabeat.playback.ExoDownloadService
 import dev.citali.amabeat.playback.queues.ListQueue

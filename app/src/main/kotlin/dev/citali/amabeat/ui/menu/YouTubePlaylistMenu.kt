@@ -82,10 +82,10 @@ import dev.citali.amabeat.constants.ThumbnailCornerRadius
 import dev.citali.amabeat.db.entities.PlaylistEntity
 import dev.citali.amabeat.db.entities.PlaylistSongMap
 import dev.citali.amabeat.extensions.toMediaItem
-import moe.rukamori.archivetune.innertube.YouTube
-import moe.rukamori.archivetune.innertube.models.PlaylistItem
-import moe.rukamori.archivetune.innertube.models.SongItem
-import moe.rukamori.archivetune.innertube.utils.completed
+import moe.rukamori.amabeat.innertube.YouTube
+import moe.rukamori.amabeat.innertube.models.PlaylistItem
+import moe.rukamori.amabeat.innertube.models.SongItem
+import moe.rukamori.amabeat.innertube.utils.completed
 import dev.citali.amabeat.models.MediaMetadata
 import dev.citali.amabeat.models.toMediaMetadata
 import dev.citali.amabeat.playback.ExoDownloadService

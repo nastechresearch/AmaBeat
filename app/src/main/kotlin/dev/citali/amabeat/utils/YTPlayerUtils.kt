@@ -16,34 +16,34 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import dev.citali.amabeat.constants.AudioQuality
 import dev.citali.amabeat.constants.PlayerStreamClient
-import moe.rukamori.archivetune.innertube.NewPipeUtils
-import moe.rukamori.archivetune.innertube.PlaybackAuthState
-import moe.rukamori.archivetune.innertube.YouTube
-import moe.rukamori.archivetune.innertube.models.YouTubeClient
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.ANDROID_CREATOR
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.ANDROID_MUSIC
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.ANDROID_TESTSUITE
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.ANDROID_UNPLUGGED
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.ANDROID_VR_1_43_32
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.ANDROID_VR_1_61_48
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.ANDROID_VR_1_65_10
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.ANDROID_VR_NO_AUTH
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.IOS
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.IOS_MUSIC
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.IPADOS
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.MOBILE
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.MWEB
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.TVHTML5
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.TVHTML5_DOWNGRADED
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.TVHTML5_SIMPLY
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.TVHTML5_SIMPLY_EMBEDDED_PLAYER
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.VISIONOS
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.WEB
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.WEB_CREATOR
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.WEB_EMBEDDED
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.WEB_PRIMARY
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.WEB_REMIX
-import moe.rukamori.archivetune.innertube.models.response.PlayerResponse
+import moe.rukamori.amabeat.innertube.NewPipeUtils
+import moe.rukamori.amabeat.innertube.PlaybackAuthState
+import moe.rukamori.amabeat.innertube.YouTube
+import moe.rukamori.amabeat.innertube.models.YouTubeClient
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.ANDROID_CREATOR
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.ANDROID_MUSIC
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.ANDROID_TESTSUITE
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.ANDROID_UNPLUGGED
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.ANDROID_VR_1_43_32
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.ANDROID_VR_1_61_48
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.ANDROID_VR_1_65_10
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.ANDROID_VR_NO_AUTH
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.IOS
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.IOS_MUSIC
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.IPADOS
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.MOBILE
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.MWEB
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.TVHTML5
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.TVHTML5_DOWNGRADED
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.TVHTML5_SIMPLY
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.TVHTML5_SIMPLY_EMBEDDED_PLAYER
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.VISIONOS
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.WEB
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.WEB_CREATOR
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.WEB_EMBEDDED
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.WEB_PRIMARY
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.WEB_REMIX
+import moe.rukamori.amabeat.innertube.models.response.PlayerResponse
 import dev.citali.amabeat.utils.potoken.BotGuardTokenGenerator
 import dev.citali.amabeat.utils.potoken.PoTokenResult
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
@@ -125,7 +125,7 @@ object YTPlayerUtils {
      * Do not use other clients for this because it can result in inconsistent metadata.
      * For example other clients can have different normalization targets (loudnessDb).
      *
-     * [moe.rukamori.archivetune.innertube.models.YouTubeClient.WEB_REMIX] should be preferred here because currently it is the only client which provides:
+     * [moe.rukamori.amabeat.innertube.models.YouTubeClient.WEB_REMIX] should be preferred here because currently it is the only client which provides:
      * - the correct metadata (like loudnessDb)
      * - premium formats
      */

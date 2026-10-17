@@ -83,7 +83,7 @@ import dev.citali.amabeat.ui.utils.backToMain
 import dev.citali.amabeat.utils.Updater
 import dev.citali.amabeat.utils.rememberPreference
 import dev.citali.amabeat.viewmodels.HomeViewModel
-import moe.rukamori.archivetune.innertube.utils.hasYouTubeLoginCookie
+import moe.rukamori.amabeat.innertube.utils.hasYouTubeLoginCookie
 
 
 private fun searchableSettingsRoute(parentKey: String, scrollKey: String?): String? {

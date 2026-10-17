@@ -47,7 +47,7 @@ import dev.citali.amabeat.LocalPlayerConnection
 import dev.citali.amabeat.R
 import dev.citali.amabeat.constants.SpeedDialSongIdsKey
 import dev.citali.amabeat.db.entities.ArtistEntity
-import moe.rukamori.archivetune.innertube.models.ArtistItem
+import moe.rukamori.amabeat.innertube.models.ArtistItem
 import dev.citali.amabeat.playback.queues.YouTubeQueue
 import dev.citali.amabeat.ui.component.MenuSurfaceSection
 import dev.citali.amabeat.ui.component.NewAction

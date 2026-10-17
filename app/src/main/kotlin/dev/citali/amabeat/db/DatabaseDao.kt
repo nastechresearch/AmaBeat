@@ -60,10 +60,10 @@ import dev.citali.amabeat.db.entities.SongWithStats
 import dev.citali.amabeat.db.entities.TagEntity
 import dev.citali.amabeat.extensions.reversed
 import dev.citali.amabeat.extensions.toSQLiteQuery
-import moe.rukamori.archivetune.innertube.models.PlaylistItem
-import moe.rukamori.archivetune.innertube.models.SongItem
-import moe.rukamori.archivetune.innertube.pages.AlbumPage
-import moe.rukamori.archivetune.innertube.pages.ArtistPage
+import moe.rukamori.amabeat.innertube.models.PlaylistItem
+import moe.rukamori.amabeat.innertube.models.SongItem
+import moe.rukamori.amabeat.innertube.pages.AlbumPage
+import moe.rukamori.amabeat.innertube.pages.ArtistPage
 import dev.citali.amabeat.models.MediaMetadata
 import dev.citali.amabeat.models.toMediaMetadata
 import dev.citali.amabeat.ui.utils.YtimgResizePolicy

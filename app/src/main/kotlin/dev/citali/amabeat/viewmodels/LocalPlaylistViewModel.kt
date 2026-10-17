@@ -51,11 +51,11 @@ import dev.citali.amabeat.db.entities.PlaylistSong
 import dev.citali.amabeat.extensions.filterBlockedArtists
 import dev.citali.amabeat.extensions.reversed
 import dev.citali.amabeat.extensions.toEnum
-import moe.rukamori.archivetune.innertube.YouTube
-import moe.rukamori.archivetune.innertube.models.SongItem
-import moe.rukamori.archivetune.innertube.models.YTItem
-import moe.rukamori.archivetune.innertube.models.filterExplicit
-import moe.rukamori.archivetune.innertube.models.filterVideo
+import moe.rukamori.amabeat.innertube.YouTube
+import moe.rukamori.amabeat.innertube.models.SongItem
+import moe.rukamori.amabeat.innertube.models.YTItem
+import moe.rukamori.amabeat.innertube.models.filterExplicit
+import moe.rukamori.amabeat.innertube.models.filterVideo
 import dev.citali.amabeat.models.PlaylistSuggestion
 import dev.citali.amabeat.models.PlaylistSuggestionPage
 import dev.citali.amabeat.models.PlaylistSuggestionQuery
@@ -463,7 +463,7 @@ class LocalPlaylistViewModel
         }
 
         suspend fun addSongToPlaylist(
-            song: moe.rukamori.archivetune.innertube.models.SongItem,
+            song: moe.rukamori.amabeat.innertube.models.SongItem,
             browseId: String?,
         ): Boolean {
             return try {

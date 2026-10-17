@@ -80,7 +80,7 @@ import dev.citali.amabeat.extensions.filterExplicitAlbums
 import dev.citali.amabeat.extensions.filterVideo
 import dev.citali.amabeat.extensions.reversed
 import dev.citali.amabeat.extensions.toEnum
-import moe.rukamori.archivetune.innertube.YouTube
+import moe.rukamori.amabeat.innertube.YouTube
 import dev.citali.amabeat.library.LibraryTopMix
 import dev.citali.amabeat.library.ObserveLibraryTopMixesUseCase
 import dev.citali.amabeat.library.RefreshLibraryTopMixesResult

@@ -13,7 +13,7 @@ import dev.citali.amabeat.constants.EnableYouLyPlusLyricsKey
 import dev.citali.amabeat.utils.GlobalLog
 import dev.citali.amabeat.utils.dataStore
 import dev.citali.amabeat.utils.get
-import moe.rukamori.archivetune.youlyplus.YouLyPlus
+import moe.rukamori.amabeat.youlyplus.YouLyPlus
 
 object YouLyPlusLyricsProvider : LyricsProvider {
     init {

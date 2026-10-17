@@ -20,7 +20,7 @@ import dev.citali.amabeat.auth.CompleteYouTubeLoginUseCase
 import dev.citali.amabeat.auth.MissingYouTubeDataSyncIdException
 import dev.citali.amabeat.auth.SaveYouTubePoTokenUseCase
 import dev.citali.amabeat.auth.UpdateYouTubeLoginContextUseCase
-import moe.rukamori.archivetune.innertube.PlaybackAuthState
+import moe.rukamori.amabeat.innertube.PlaybackAuthState
 import timber.log.Timber
 import javax.inject.Inject
 

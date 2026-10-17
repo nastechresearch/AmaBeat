@@ -83,8 +83,8 @@ import coil3.compose.AsyncImage
 import dev.citali.amabeat.LocalDatabase
 import dev.citali.amabeat.LocalPlayerConnection
 import dev.citali.amabeat.R
-import moe.rukamori.archivetune.innertube.YouTube
-import moe.rukamori.archivetune.innertube.models.MediaInfo
+import moe.rukamori.amabeat.innertube.YouTube
+import moe.rukamori.amabeat.innertube.models.MediaInfo
 import dev.citali.amabeat.ui.component.LocalBottomSheetPageState
 
 private enum class MediaInfoTab(

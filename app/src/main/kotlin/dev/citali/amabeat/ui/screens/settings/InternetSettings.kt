@@ -64,7 +64,7 @@ import kotlinx.coroutines.launch
 import dev.citali.amabeat.LocalPlayerAwareWindowInsets
 import dev.citali.amabeat.R
 import dev.citali.amabeat.constants.*
-import moe.rukamori.archivetune.innertube.YouTube
+import moe.rukamori.amabeat.innertube.YouTube
 import dev.citali.amabeat.ui.component.*
 import dev.citali.amabeat.ui.utils.backToMain
 import dev.citali.amabeat.utils.ProxyUtils

@@ -39,7 +39,7 @@ import dev.citali.amabeat.db.entities.ListeningSummary
 import dev.citali.amabeat.db.entities.ListeningTotals
 import dev.citali.amabeat.db.entities.Song
 import dev.citali.amabeat.db.entities.SongWithStats
-import moe.rukamori.archivetune.innertube.YouTube
+import moe.rukamori.amabeat.innertube.YouTube
 import dev.citali.amabeat.ui.screens.OptionStats
 import dev.citali.amabeat.utils.reportException
 import java.time.Duration

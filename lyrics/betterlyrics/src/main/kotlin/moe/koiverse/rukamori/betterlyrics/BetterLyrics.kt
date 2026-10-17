@@ -1,11 +1,11 @@
 /*
- * ArchiveTune (2026)
+ * AmaBeat (2026)
  * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
 
-package moe.rukamori.archivetune.betterlyrics
+package moe.rukamori.amabeat.betterlyrics
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
@@ -20,7 +20,7 @@ import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
-import moe.rukamori.archivetune.betterlyrics.models.TTMLResponse
+import moe.rukamori.amabeat.betterlyrics.models.TTMLResponse
 
 object BetterLyrics {
     private const val API_BASE_URL = "https://lyrics-api.boidu.dev/"
