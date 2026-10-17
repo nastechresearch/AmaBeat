@@ -868,6 +868,16 @@ object ThemePalettes {
             tertiary = Color(0xFFB58900),
             neutral = Color(0xFF657B83),
         )
+    val Amapiano =
+        ThemePalette(
+            id = "amapiano",
+            nameResId = R.string.palette_amapiano,
+            // Burnt orange, marigold, and deep cocoa evoke Amapiano's warm, vibrant club aesthetic.
+            primary = Color(0xFFE85D04),
+            secondary = Color(0xFFF48C06),
+            tertiary = Color(0xFFFFBA08),
+            neutral = Color(0xFF3A2415),
+        )
 
     val allPalettes: List<ThemePalette> =
         listOf(
@@ -944,6 +954,7 @@ object ThemePalettes {
             Nord,
             Dracula,
             Solarized,
+            Amapiano,
         )
 
     fun findByPrimaryColor(colorHex: String): ThemePalette? = allPalettes.find { it.primary.toHexString() == colorHex }

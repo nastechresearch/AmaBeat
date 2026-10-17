@@ -1331,6 +1331,7 @@
     <string name="palette_nord">Nord</string>
     <string name="palette_dracula">Dracula</string>
     <string name="palette_solarized">Solarized</string>
+    <string name="palette_amapiano">Amapiano</string>
     <string name="banner_storage">Banner storage</string>
     <string name="max_banner_storage_size">Banner storage limit</string>
     <string name="banner_storage_usage">Currently using %1$s. Smart Trimmer removes the oldest unused banners above this limit.</string>
