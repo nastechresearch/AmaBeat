@@ -165,13 +165,12 @@ jobs:
                   continue;
                 }
 
-                const author = issue.data.user.login;
                 const headSha = workflowRun?.head_sha ?? headCommit?.id ?? context.sha;
                 const commitUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/commit/${headSha}`;
                 const commitSha = headSha.substring(0, 7);
                 const body = [
                   commentMarker,
-                  `Hey @${author}, This issue was referenced on commit [\`${commitSha}\`](${commitUrl}).`,
+                  `This issue was referenced on commit [\`${commitSha}\`](${commitUrl}).`,
                   "",
                   "Make sure to try the latest nightly version:",
                   "",

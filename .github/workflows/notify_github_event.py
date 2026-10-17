@@ -11,7 +11,8 @@ MD_V2_SPECIAL = r"_*[]()~`>#+-=|{}.!"
 
 
 def esc(text):
-    return re.sub(r"([%s])" % re.escape(MD_V2_SPECIAL), r"\\\1", str(text))
+    text = re.sub(r"(?<![A-Za-z0-9_])@[A-Za-z0-9_-]{1,39}", lambda match: match.group(0)[1:], str(text))
+    return re.sub(r"([%s])" % re.escape(MD_V2_SPECIAL), r"\\\1", text)
 
 
 def esc_url(url):
@@ -33,23 +34,18 @@ def main():
     repo_url = repo["html_url"]
     repo_link = link(repo_full, repo_url)
 
-    def user_link(login):
-        return link(login, f"https://github.com/{login}")
-
     message = None
 
     if event == "watch":
-        sender = payload["sender"]["login"]
         message = (
             f"{repo_link} • Star\n"
-            f"{user_link(sender)} starred {link(repo_name, repo_url)}"
+            f"A GitHub user starred {link(repo_name, repo_url)}"
         )
     elif event == "fork":
-        sender = payload["sender"]["login"]
         forkee = payload["forkee"]
         message = (
             f"{repo_link} • Fork\n"
-            f"{user_link(sender)} forked {link(forkee['full_name'], forkee['html_url'])}\n"
+            f"A GitHub user forked {link(forkee['full_name'], forkee['html_url'])}\n"
             f"From: {link(repo_name, repo_url)}"
         )
     elif event == "issues":
@@ -61,13 +57,12 @@ def main():
             "labeled": "Labeled",
             "unlabeled": "Unlabeled",
         }.get(payload.get("action", ""), payload.get("action", "").capitalize())
-        sender = payload["sender"]["login"]
         labels = ", ".join(label["name"] for label in issue.get("labels", [])) or "none"
         issue_ref = link(f"{repo_name}#{issue['number']}", issue["html_url"])
         message = (
             f"{repo_link} • Issue\n"
-            f"{user_link(sender)} {esc(verb)} {issue_ref} {esc(issue['title'])}\n"
-            f"State: {esc(issue['state'].upper())} • Author: {user_link(issue['user']['login'])}\n"
+            f"{esc(verb)} {issue_ref} {esc(issue['title'])}\n"
+            f"State: {esc(issue['state'].upper())}\n"
             f"Labels: {esc(labels)}"
         )
     elif event == "issue_comment":
@@ -83,7 +78,7 @@ def main():
         issue_ref = link(f"{repo_name}#{issue['number']}", comment["html_url"])
         message = (
             f"{repo_link} • Comment\n"
-            f"{user_link(comment['user']['login'])} Commented {issue_ref} {esc(issue['title'])}\n"
+            f"Commented {issue_ref} {esc(issue['title'])}\n"
             f"{kind}: {esc(issue['state'].upper())}\n\n{esc(body)}"
         )
     elif event == "pull_request":
@@ -94,13 +89,12 @@ def main():
             "reopened": "Reopened",
             "ready_for_review": "Marked ready",
         }.get(payload.get("action", ""), payload.get("action", "").capitalize())
-        sender = payload["sender"]["login"]
         state = "MERGED" if pr.get("merged") else pr["state"].upper()
         pr_ref = link(f"{repo_name}#{pr['number']}", pr["html_url"])
         message = (
             f"{repo_link} • Pull Request\n"
-            f"{user_link(sender)} {esc(verb)} {pr_ref} {esc(pr['title'])}\n"
-            f"State: {esc(state)} • Author: {user_link(pr['user']['login'])}"
+            f"{esc(verb)} {pr_ref} {esc(pr['title'])}\n"
+            f"State: {esc(state)}"
         )
     elif event == "workflow_run":
         run = payload["workflow_run"]
