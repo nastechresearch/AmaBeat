@@ -293,7 +293,7 @@ class AboutAttributionRepository
                     val contributor =
                         commit
                             .translationCommitAuthorName()
-                            ?.takeUnless(::isIgnoredTranslationContributor)
+                            ?.takeIf(::isAmaBeatContributor)
                             ?: continue
                     contributors.add(contributor)
                 }
@@ -354,7 +354,7 @@ class AboutAttributionRepository
                                 .optString(nameIndex)
                                 .trim()
                                 .takeIf(String::isNotBlank)
-                                ?.takeUnless(::isIgnoredTranslationContributor)
+                                ?.takeIf(::isAmaBeatContributor)
                                 ?: continue
                         contributorNames.add(contributorName)
                     }
@@ -383,7 +383,7 @@ class AboutAttributionRepository
                         contributor
                             .trim()
                             .takeIf(String::isNotBlank)
-                            ?.takeUnless(::isIgnoredTranslationContributor)
+                            ?.takeIf(::isAmaBeatContributor)
                             ?: continue
                     targetContributors.add(cleanContributor)
                     if (targetContributors.size == MaxContributorsPerLanguage) break
@@ -402,6 +402,9 @@ class AboutAttributionRepository
             IgnoredTranslationContributors.any { ignoredName ->
                 name.equals(ignoredName, ignoreCase = true)
             }
+
+        private fun isAmaBeatContributor(name: String): Boolean =
+            name.equals(AmaBeatOwner, ignoreCase = true)
 
         private fun JSONObject.isTranslationCommit(): Boolean =
             optJSONObject("commit")
@@ -471,6 +474,7 @@ class AboutAttributionRepository
         )
 
         private companion object {
+            const val AmaBeatOwner = "nastechresearch"
             const val GitHubCommitsUrl = "https://api.github.com/repos/nastechresearch/AmaBeat/commits"
             const val GitHubTranslationResourceUrl =
                 "https://api.github.com/repos/nastechresearch/AmaBeat/contents/app/src/main/res"
