@@ -172,7 +172,8 @@ import kotlin.math.sin
 import kotlin.time.Duration.Companion.seconds
 
 private val SmoothDecelerateEasing = CubicBezierEasing(0.0f, 0.0f, 0.2f, 1.0f)
-private const val LyricsWordSyncLeadMs = 300L
+/** Keep LRC highlighting on the timestamp; user-adjustable offset handles provider drift. */
+private const val LyricsWordSyncLeadMs = 0L
 
 val LyricsPreviewTime = 2.seconds
 
@@ -651,7 +652,8 @@ fun Lyrics(
             if (isTtmlLyrics) {
                 withFrameNanos { }
             } else {
-                delay(50L)
+                // Keep LRC line changes close to the player's clock as well as TTML.
+                delay(16L)
             }
             val sliderPosition = sliderPositionProvider()
             val seekingNow = sliderPosition != null
