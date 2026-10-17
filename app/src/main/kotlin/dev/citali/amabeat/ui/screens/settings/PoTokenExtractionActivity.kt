@@ -52,7 +52,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import dev.citali.amabeat.R
-import moe.rukamori.archivetune.innertube.YouTube
+import moe.rukamori.amabeat.innertube.YouTube
 import dev.citali.amabeat.ui.component.IconButton
 import dev.citali.amabeat.utils.potoken.BotGuardTokenGenerator
 import dev.citali.amabeat.utils.resetAuthWebViewSession

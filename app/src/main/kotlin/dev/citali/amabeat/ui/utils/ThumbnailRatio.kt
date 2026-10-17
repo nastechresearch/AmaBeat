@@ -7,9 +7,9 @@
 
 package dev.citali.amabeat.ui.utils
 
-import moe.rukamori.archivetune.innertube.models.ArtistItem
-import moe.rukamori.archivetune.innertube.models.SongItem
-import moe.rukamori.archivetune.innertube.models.YTItem
+import moe.rukamori.amabeat.innertube.models.ArtistItem
+import moe.rukamori.amabeat.innertube.models.SongItem
+import moe.rukamori.amabeat.innertube.models.YTItem
 
 private const val SQUARE_RATIO = 1f
 private const val LANDSCAPE_RATIO = 16f / 9f

@@ -26,8 +26,8 @@ import dev.citali.amabeat.cipher.CipherSettingsDomainState
 import dev.citali.amabeat.cipher.ManualCipherRefreshResult
 import dev.citali.amabeat.cipher.ObserveCipherSettingsUseCase
 import dev.citali.amabeat.cipher.RefreshCipherUseCase
-import moe.rukamori.archivetune.morideobfuscator.CipherRuntimeStatus
-import moe.rukamori.archivetune.morideobfuscator.MORI_CIPHER_REFRESH_INTERVAL_MILLIS
+import moe.rukamori.amabeat.morideobfuscator.CipherRuntimeStatus
+import moe.rukamori.amabeat.morideobfuscator.MORI_CIPHER_REFRESH_INTERVAL_MILLIS
 import dev.citali.amabeat.utils.reportException
 import java.util.Locale
 import javax.inject.Inject

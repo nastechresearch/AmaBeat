@@ -24,10 +24,10 @@ import dev.citali.amabeat.constants.HideExplicitKey
 import dev.citali.amabeat.constants.HideVideoKey
 import dev.citali.amabeat.db.MusicDatabase
 import dev.citali.amabeat.db.entities.SearchHistory
-import moe.rukamori.archivetune.innertube.YouTube
-import moe.rukamori.archivetune.innertube.models.YTItem
-import moe.rukamori.archivetune.innertube.models.filterExplicit
-import moe.rukamori.archivetune.innertube.models.filterVideo
+import moe.rukamori.amabeat.innertube.YouTube
+import moe.rukamori.amabeat.innertube.models.YTItem
+import moe.rukamori.amabeat.innertube.models.filterExplicit
+import moe.rukamori.amabeat.innertube.models.filterVideo
 import dev.citali.amabeat.utils.dataStore
 import dev.citali.amabeat.utils.get
 import javax.inject.Inject

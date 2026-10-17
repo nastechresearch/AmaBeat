@@ -49,7 +49,7 @@ import dev.citali.amabeat.db.entities.FormatEntity
 import dev.citali.amabeat.db.entities.SongEntity
 import dev.citali.amabeat.di.DownloadCache
 import dev.citali.amabeat.di.PlayerCache
-import moe.rukamori.archivetune.innertube.YouTube
+import moe.rukamori.amabeat.innertube.YouTube
 import dev.citali.amabeat.utils.AuthScopedCacheValue
 import dev.citali.amabeat.utils.NewPipeStreamResolver
 import dev.citali.amabeat.utils.DownloadedArtwork

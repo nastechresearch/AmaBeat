@@ -111,9 +111,9 @@ import dev.citali.amabeat.db.entities.EventWithSong
 import dev.citali.amabeat.extensions.metadata
 import dev.citali.amabeat.extensions.toMediaItem
 import dev.citali.amabeat.extensions.togglePlayPause
-import moe.rukamori.archivetune.innertube.YouTube
-import moe.rukamori.archivetune.innertube.pages.HistoryPage
-import moe.rukamori.archivetune.innertube.utils.hasYouTubeLoginCookie
+import moe.rukamori.amabeat.innertube.YouTube
+import moe.rukamori.amabeat.innertube.pages.HistoryPage
+import moe.rukamori.amabeat.innertube.utils.hasYouTubeLoginCookie
 import dev.citali.amabeat.models.toMediaMetadata
 import dev.citali.amabeat.playback.queues.ListQueue
 import dev.citali.amabeat.playback.queues.YouTubeQueue
@@ -797,8 +797,8 @@ private fun RemoteHistoryFeed(
     activeMediaId: String?,
     navController: NavController,
     onRetry: () -> Unit,
-    onSongMenu: (moe.rukamori.archivetune.innertube.models.SongItem) -> Unit,
-    onSongClick: (moe.rukamori.archivetune.innertube.models.SongItem) -> Unit,
+    onSongMenu: (moe.rukamori.amabeat.innertube.models.SongItem) -> Unit,
+    onSongClick: (moe.rukamori.amabeat.innertube.models.SongItem) -> Unit,
 ) {
     LazyColumn(
         state = listState,

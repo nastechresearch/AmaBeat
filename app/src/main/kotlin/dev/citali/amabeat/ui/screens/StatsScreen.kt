@@ -128,7 +128,7 @@ import dev.citali.amabeat.db.entities.Song
 import dev.citali.amabeat.db.entities.SongWithStats
 import dev.citali.amabeat.extensions.toMediaItem
 import dev.citali.amabeat.extensions.togglePlayPause
-import moe.rukamori.archivetune.innertube.models.WatchEndpoint
+import moe.rukamori.amabeat.innertube.models.WatchEndpoint
 import dev.citali.amabeat.models.MediaMetadata
 import dev.citali.amabeat.models.toMediaMetadata
 import dev.citali.amabeat.playback.queues.ListQueue

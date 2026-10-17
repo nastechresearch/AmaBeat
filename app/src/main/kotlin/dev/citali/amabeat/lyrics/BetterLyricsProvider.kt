@@ -9,7 +9,7 @@ package dev.citali.amabeat.lyrics
 
 import android.content.Context
 import android.util.Log
-import moe.rukamori.archivetune.betterlyrics.BetterLyrics
+import moe.rukamori.amabeat.betterlyrics.BetterLyrics
 import dev.citali.amabeat.constants.EnableBetterLyricsKey
 import dev.citali.amabeat.utils.GlobalLog
 import dev.citali.amabeat.utils.dataStore

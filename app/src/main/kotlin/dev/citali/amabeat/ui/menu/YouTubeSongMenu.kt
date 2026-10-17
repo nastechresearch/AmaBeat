@@ -84,8 +84,8 @@ import dev.citali.amabeat.constants.SpeedDialSongIdsKey
 import dev.citali.amabeat.constants.ThumbnailCornerRadius
 import dev.citali.amabeat.db.entities.SongEntity
 import dev.citali.amabeat.extensions.toMediaItem
-import moe.rukamori.archivetune.innertube.YouTube
-import moe.rukamori.archivetune.innertube.models.SongItem
+import moe.rukamori.amabeat.innertube.YouTube
+import moe.rukamori.amabeat.innertube.models.SongItem
 import dev.citali.amabeat.models.MediaMetadata
 import dev.citali.amabeat.models.toMediaMetadata
 import dev.citali.amabeat.playback.ExoDownloadService

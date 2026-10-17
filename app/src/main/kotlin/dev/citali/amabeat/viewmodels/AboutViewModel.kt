@@ -393,16 +393,16 @@ class AboutViewModel
                     TeamMemberCollection.of(
                         TeamMember(
                             avatarUrl = "https://avatars.githubusercontent.com/u/107134739?v=4",
-                            name = "ArchiveTune",
+                            name = "AmaBeat",
                             positionResId = R.string.about_position_original,
-                            profileUrl = "https://github.com/rukamori/ArchiveTune",
+                            profileUrl = "https://github.com/rukamori/AmaBeat",
                             links =
                                 AboutLinkCollection.of(
                                     AboutLinkUiModel(
                                         id = "github",
                                         iconResId = R.drawable.github,
                                         labelResId = R.string.about_content_desc_github,
-                                        url = "https://github.com/rukamori/ArchiveTune",
+                                        url = "https://github.com/rukamori/AmaBeat",
                                     ),
                                 ),
                         ),

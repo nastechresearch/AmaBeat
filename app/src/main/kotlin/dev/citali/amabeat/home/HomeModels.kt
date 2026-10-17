@@ -14,8 +14,8 @@ import dev.citali.amabeat.constants.QuickPicks
 import dev.citali.amabeat.constants.QuickPicksDisplayMode
 import dev.citali.amabeat.db.entities.LocalItem
 import dev.citali.amabeat.db.entities.Song
-import moe.rukamori.archivetune.innertube.models.PlaylistItem
-import moe.rukamori.archivetune.innertube.pages.HomePage
+import moe.rukamori.amabeat.innertube.models.PlaylistItem
+import moe.rukamori.amabeat.innertube.pages.HomePage
 import dev.citali.amabeat.models.SimilarRecommendation
 
 sealed interface HomeScreenState {

@@ -164,7 +164,7 @@ fun PlayerMenu(
     val (artistSeparators) = rememberPreference(ArtistSeparatorsKey, defaultValue = ",;/&")
     val (externalDownloaderEnabled) = rememberPreference(ExternalDownloaderEnabledKey, defaultValue = false)
     val (externalDownloaderPackage) = rememberPreference(ExternalDownloaderPackageKey, defaultValue = "")
-    val (archiveTuneCanvasEnabled) = rememberPreference(AmaBeatCanvasKey, defaultValue = false)
+    val (amaBeatCanvasEnabled) = rememberPreference(AmaBeatCanvasKey, defaultValue = false)
     val settingsPlayerDesignStyle by rememberEnumPreference(PlayerDesignStyleKey, defaultValue = PlayerDesignStyle.V4)
     val (playerStyleOverrides) =
         rememberPreference(PlayerDesignStyleOverridesKey, "")
@@ -481,7 +481,7 @@ fun PlayerMenu(
                             if (
                                 !isLocalMedia &&
                                 isQueueTrigger != true &&
-                                archiveTuneCanvasEnabled &&
+                                amaBeatCanvasEnabled &&
                                 !lowDataModeActive &&
                                 playerDesignStyle != PlayerDesignStyle.V5
                             ) {

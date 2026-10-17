@@ -78,7 +78,7 @@ class GoogleDriveClient
                     val fullFileName = "$backupFileName.backup"
 
                     // In overwrite mode, fully upload a staging document before touching the
-                    // previous backup. This avoids ArchiveTune's delete-before-write data-loss window.
+                    // previous backup. This avoids AmaBeat's delete-before-write data-loss window.
                     val documentName = if (settings.overwriteExisting) {
                         "$fullFileName.uploading-${System.currentTimeMillis()}"
                     } else {

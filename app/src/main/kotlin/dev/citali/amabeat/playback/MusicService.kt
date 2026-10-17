@@ -228,11 +228,11 @@ import dev.citali.amabeat.extensions.toEnum
 import dev.citali.amabeat.extensions.toMediaItem
 import dev.citali.amabeat.extensions.toPersistQueue
 import dev.citali.amabeat.extensions.toQueue
-import moe.rukamori.archivetune.innertube.PlaybackAuthState
-import moe.rukamori.archivetune.innertube.YouTube
-import moe.rukamori.archivetune.innertube.models.SongItem
-import moe.rukamori.archivetune.innertube.models.WatchEndpoint
-import moe.rukamori.archivetune.innertube.models.response.PlayerResponse
+import moe.rukamori.amabeat.innertube.PlaybackAuthState
+import moe.rukamori.amabeat.innertube.YouTube
+import moe.rukamori.amabeat.innertube.models.SongItem
+import moe.rukamori.amabeat.innertube.models.WatchEndpoint
+import moe.rukamori.amabeat.innertube.models.response.PlayerResponse
 import dev.citali.amabeat.lastfm.LastFM
 import dev.citali.amabeat.lyrics.LyricsHelper
 import dev.citali.amabeat.lyrics.LyricsPreloadManager

@@ -229,7 +229,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write   # commit the generated pack
-      actions: write    # re-run the LunarTune notification, which a token push does not trigger
+      actions: write    # re-run the AmaBeat notification, which a token push does not trigger
     env:
       ICON_RANDOM_DIGITS: 6
 
@@ -287,7 +287,7 @@ jobs:
 
       # Pushes made with the workflow token do not start workflows, so the notification that
       # normally fires on a push to main has to be asked for explicitly.
-      - name: Notify LunarTune
+      - name: Notify AmaBeat
         if: steps.commit.outputs.published == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -296,7 +296,7 @@ jobs:
           curl --fail --silent --show-error --request POST \
             --header "Authorization: Bearer ${GH_TOKEN}" \
             --header "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${REPOSITORY}/actions/workflows/notify-lunartune.yml/dispatches" \
+            "https://api.github.com/repos/${REPOSITORY}/actions/workflows/notify-amabeat.yml/dispatches" \
             --data '{"ref":"main"}'
 
   # ─────────────────────────────────────────────────────────────────────────────

@@ -197,7 +197,7 @@ import dev.citali.amabeat.constants.SliderStyleKey
 import dev.citali.amabeat.constants.ThumbnailCornerRadiusKey
 import dev.citali.amabeat.extensions.metadata
 import dev.citali.amabeat.extensions.togglePlayPause
-import moe.rukamori.archivetune.innertube.utils.hasYouTubeLoginCookie
+import moe.rukamori.amabeat.innertube.utils.hasYouTubeLoginCookie
 import dev.citali.amabeat.models.MediaMetadata
 import dev.citali.amabeat.ui.component.BottomSheet
 import dev.citali.amabeat.ui.component.BottomSheetState
@@ -492,7 +492,7 @@ fun BottomSheetPlayer(
     val aodModeEnabled by playerConnection.aodModeEnabled.collectAsStateWithLifecycle()
     val currentLyricsEntity by playerConnection.currentLyrics.collectAsStateWithLifecycle(initialValue = null)
     val (thumbnailCornerRadius) = rememberPreference(ThumbnailCornerRadiusKey, defaultValue = 8f)
-    val archiveTuneCanvasEnabled by rememberPreference(AmaBeatCanvasKey, false)
+    val amaBeatCanvasEnabled by rememberPreference(AmaBeatCanvasKey, false)
     val lowDataModeActive = rememberLowDataModeActive()
     val (maxCanvasCacheSize, _) =
         rememberPreference(
@@ -1232,11 +1232,11 @@ fun BottomSheetPlayer(
                 if (country.length == 2) country.lowercase(Locale.ROOT) else "us"
             }
         val shouldUseV7Canvas =
-            archiveTuneCanvasEnabled &&
+            amaBeatCanvasEnabled &&
                  (playerDesignStyle == PlayerDesignStyle.V7 || playerDesignStyle == PlayerDesignStyle.V7_LEGACY) &&
                 !aodModeEnabled
         val shouldUseArtworkCanvas =
-            archiveTuneCanvasEnabled &&
+            amaBeatCanvasEnabled &&
                 ((playerDesignStyle == PlayerDesignStyle.V8 || playerDesignStyle == PlayerDesignStyle.V10) || playerDesignStyle == PlayerDesignStyle.V9) &&
                 !aodModeEnabled
         val shouldFetchV7Canvas = shouldUseV7Canvas && !lowDataModeActive
@@ -2062,7 +2062,7 @@ fun BottomSheetPlayer(
         mediaMetadata?.let { metadata ->
             if (playerDesignStyle == PlayerDesignStyle.V10) {
             AppleMusicLyricsPageTransition(
-                // Apple Music style shows lyrics inline in portrait (ported from ArchiveTune).
+                // Apple Music style shows lyrics inline in portrait (ported from AmaBeat).
                 visible =
                     isLyricsScreenVisible &&
                         (playerDesignStyle != PlayerDesignStyle.V10 ||
@@ -2082,7 +2082,7 @@ fun BottomSheetPlayer(
             MikoLyricsTransition(
                 progress = mikoLyricsProgress,
                 mountedState = mikoLyricsMounted,
-                // Apple Music style shows lyrics inline in portrait (ported from ArchiveTune).
+                // Apple Music style shows lyrics inline in portrait (ported from AmaBeat).
                 visible =
                     isLyricsScreenVisible &&
                         (playerDesignStyle != PlayerDesignStyle.V10 ||

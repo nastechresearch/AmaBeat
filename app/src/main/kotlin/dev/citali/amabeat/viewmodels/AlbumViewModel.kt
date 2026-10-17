@@ -26,8 +26,8 @@ import dev.citali.amabeat.constants.HideVideoKey
 import dev.citali.amabeat.db.MusicDatabase
 import dev.citali.amabeat.extensions.filterBlockedArtists
 import dev.citali.amabeat.extensions.filterVideo
-import moe.rukamori.archivetune.innertube.YouTube
-import moe.rukamori.archivetune.innertube.models.AlbumItem
+import moe.rukamori.amabeat.innertube.YouTube
+import moe.rukamori.amabeat.innertube.models.AlbumItem
 import dev.citali.amabeat.utils.dataStore
 import dev.citali.amabeat.utils.reportException
 import javax.inject.Inject

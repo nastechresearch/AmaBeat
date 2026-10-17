@@ -26,8 +26,8 @@ import dev.citali.amabeat.R
 import dev.citali.amabeat.db.entities.Album
 import dev.citali.amabeat.db.entities.Artist
 import dev.citali.amabeat.db.entities.Playlist
-import moe.rukamori.archivetune.innertube.models.PlaylistItem
-import moe.rukamori.archivetune.innertube.models.WatchEndpoint
+import moe.rukamori.amabeat.innertube.models.PlaylistItem
+import moe.rukamori.amabeat.innertube.models.WatchEndpoint
 import dev.citali.amabeat.ui.menu.AlbumMenu
 import dev.citali.amabeat.ui.menu.ArtistMenu
 import dev.citali.amabeat.ui.menu.PlaylistMenu

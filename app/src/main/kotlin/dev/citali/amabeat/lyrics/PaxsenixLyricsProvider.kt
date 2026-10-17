@@ -9,7 +9,7 @@ package dev.citali.amabeat.lyrics
 
 import android.content.Context
 import dev.citali.amabeat.constants.EnablePaxsenixLyricsKey
-import moe.rukamori.archivetune.paxsenix.PaxsenixLyrics
+import moe.rukamori.amabeat.paxsenix.PaxsenixLyrics
 import dev.citali.amabeat.utils.dataStore
 import dev.citali.amabeat.utils.get
 

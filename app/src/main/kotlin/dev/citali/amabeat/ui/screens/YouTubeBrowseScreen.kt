@@ -55,10 +55,10 @@ import dev.citali.amabeat.LocalPlayerConnection
 import dev.citali.amabeat.R
 import dev.citali.amabeat.constants.ListItemHeight
 import dev.citali.amabeat.extensions.togglePlayPause
-import moe.rukamori.archivetune.innertube.models.AlbumItem
-import moe.rukamori.archivetune.innertube.models.ArtistItem
-import moe.rukamori.archivetune.innertube.models.PlaylistItem
-import moe.rukamori.archivetune.innertube.models.SongItem
+import moe.rukamori.amabeat.innertube.models.AlbumItem
+import moe.rukamori.amabeat.innertube.models.ArtistItem
+import moe.rukamori.amabeat.innertube.models.PlaylistItem
+import moe.rukamori.amabeat.innertube.models.SongItem
 import dev.citali.amabeat.models.toMediaMetadata
 import dev.citali.amabeat.playback.queues.YouTubeQueue
 import dev.citali.amabeat.ui.component.IconButton

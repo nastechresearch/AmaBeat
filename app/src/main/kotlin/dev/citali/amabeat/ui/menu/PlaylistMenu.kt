@@ -73,7 +73,7 @@ import dev.citali.amabeat.db.entities.Song
 import dev.citali.amabeat.extensions.isSyncEnabled
 import dev.citali.amabeat.extensions.isUserLoggedIn
 import dev.citali.amabeat.extensions.toMediaItem
-import moe.rukamori.archivetune.innertube.YouTube
+import moe.rukamori.amabeat.innertube.YouTube
 import dev.citali.amabeat.playback.ExoDownloadService
 import dev.citali.amabeat.playback.queues.ListQueue
 import dev.citali.amabeat.playback.queues.YouTubeQueue

@@ -32,8 +32,8 @@ import dev.citali.amabeat.aicontentfilter.RefreshAiContentFilterUseCase
 import dev.citali.amabeat.aicontentfilter.UpdateAiContentFilterSettingsUseCase
 import dev.citali.amabeat.db.MusicDatabase
 import dev.citali.amabeat.lyrics.LyricsHelper
-import moe.rukamori.archivetune.paxsenix.PaxsenixLyrics
-import moe.rukamori.archivetune.paxsenix.models.PaxsenixStats
+import moe.rukamori.amabeat.paxsenix.PaxsenixLyrics
+import moe.rukamori.amabeat.paxsenix.models.PaxsenixStats
 import javax.inject.Inject
 
 sealed interface PaxsenixStatsState {

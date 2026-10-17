@@ -14,9 +14,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import dev.citali.amabeat.constants.MoriCipherManualRefreshHistoryKey
-import moe.rukamori.archivetune.morideobfuscator.CipherRefreshResult
-import moe.rukamori.archivetune.morideobfuscator.CipherSnapshot
-import moe.rukamori.archivetune.morideobfuscator.MoriCipherRuntime
+import moe.rukamori.amabeat.morideobfuscator.CipherRefreshResult
+import moe.rukamori.amabeat.morideobfuscator.CipherSnapshot
+import moe.rukamori.amabeat.morideobfuscator.MoriCipherRuntime
 import dev.citali.amabeat.utils.dataStore
 import javax.inject.Inject
 import javax.inject.Singleton

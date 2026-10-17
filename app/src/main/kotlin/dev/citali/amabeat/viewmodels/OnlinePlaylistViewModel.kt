@@ -30,11 +30,11 @@ import kotlinx.coroutines.sync.withPermit
 import dev.citali.amabeat.constants.HideVideoKey
 import dev.citali.amabeat.db.MusicDatabase
 import dev.citali.amabeat.extensions.filterBlockedArtists
-import moe.rukamori.archivetune.innertube.YouTube
-import moe.rukamori.archivetune.innertube.models.PlaylistItem
-import moe.rukamori.archivetune.innertube.models.SongItem
-import moe.rukamori.archivetune.innertube.models.distinctByPlaylistEntry
-import moe.rukamori.archivetune.innertube.models.filterVideo
+import moe.rukamori.amabeat.innertube.YouTube
+import moe.rukamori.amabeat.innertube.models.PlaylistItem
+import moe.rukamori.amabeat.innertube.models.SongItem
+import moe.rukamori.amabeat.innertube.models.distinctByPlaylistEntry
+import moe.rukamori.amabeat.innertube.models.filterVideo
 import dev.citali.amabeat.utils.dataStore
 import dev.citali.amabeat.utils.get
 import dev.citali.amabeat.utils.reportException

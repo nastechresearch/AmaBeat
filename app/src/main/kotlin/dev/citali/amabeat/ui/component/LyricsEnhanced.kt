@@ -143,7 +143,7 @@ import kotlin.math.roundToLong
 
 // Lines flip exactly at their onset: any lead made the pane scroll (and the
 // line light up) before the vocal arrived - reported as "scrolls a bit early
-// even when the line is active". Stock ArchiveTune leads LRC by 300ms; the
+// even when the line is active". Stock AmaBeat leads LRC by 300ms; the
 // pane here stays on the onset.
 private const val LRC_LEAD_MS = 0L
 private const val TTML_LEAD_MS = 0L
@@ -155,7 +155,7 @@ private const val MIN_KARAOKE_SYLLABLE_DURATION_MS = 1
 
 /**
  * Where the focused line sits in the pane, as a fraction of its height. Stock
- * ArchiveTune hands [KaraokeLyricsView] this anchor and lets the library own the
+ * AmaBeat hands [KaraokeLyricsView] this anchor and lets the library own the
  * scroll animation; the pane only follows manual scrolling through the library.
  */
 private const val LYRICS_VIEWPORT_OFFSET_RATIO = 0.38f
@@ -164,7 +164,7 @@ private const val LYRICS_VIEWPORT_OFFSET_RATIO = 0.38f
  * How long the anchor takes to reach a new pane height. The pane itself changes size in one step
  * - LyricsWithControls deliberately never animates its own resize - so this glide is what
  * carries the focused line into the space the player controls gave up. It runs at the same 520 ms
- * as that screen's reveal edge, on the stock ArchiveTune curve for this glide, so the line moves
+ * as that screen's reveal edge, on the stock AmaBeat curve for this glide, so the line moves
  * with the sweep instead of arriving before it. An eased ramp, not a jump: a curve that sets off
  * quickly still reads as the old snap.
  */
@@ -693,7 +693,7 @@ fun LyricsEnhanced(
                         }
                     // The library owns the scroll animation from here: it keeps the focused line
                     // on this anchor and eases into the next line itself, exactly as the stock
-                    // ArchiveTune pane does. The pane stays out of its way.
+                    // AmaBeat pane does. The pane stays out of its way.
                     //
                     // The anchor itself eases, though. The pane changes height in a single step
                     // when the controls come or go, and the library re-scrolls instantly whenever

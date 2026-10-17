@@ -733,7 +733,7 @@
     <string name="backup_create_failed">Couldn\'t create backup</string>
     <string name="restore_success">Backup restored successfully</string>
     <string name="restore_failed">Failed to restore backup</string>
-    <string name="restore_archivetune_backup_detected">ArchiveTune backup detected. It will be converted to AmaBeat format.</string>
+    <string name="restore_amabeat_backup_detected">AmaBeat backup detected. It will be converted to AmaBeat format.</string>
     <string name="restore_database_incompatible">The library database in this backup could not be converted for this version of AmaBeat.</string>
     <string name="discord_integration">Discord Integration</string>
     <string name="account_integrations_summary">Discord, Last.fm, Libre.fm, ListenBrainz</string>

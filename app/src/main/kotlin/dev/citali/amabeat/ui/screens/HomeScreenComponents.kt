@@ -106,12 +106,12 @@ import dev.citali.amabeat.db.entities.Playlist
 import dev.citali.amabeat.db.entities.Song
 import dev.citali.amabeat.extensions.toMediaItem
 import dev.citali.amabeat.extensions.togglePlayPause
-import moe.rukamori.archivetune.innertube.models.AlbumItem
-import moe.rukamori.archivetune.innertube.models.ArtistItem
-import moe.rukamori.archivetune.innertube.models.PlaylistItem
-import moe.rukamori.archivetune.innertube.models.SongItem
-import moe.rukamori.archivetune.innertube.models.YTItem
-import moe.rukamori.archivetune.innertube.pages.HomePage
+import moe.rukamori.amabeat.innertube.models.AlbumItem
+import moe.rukamori.amabeat.innertube.models.ArtistItem
+import moe.rukamori.amabeat.innertube.models.PlaylistItem
+import moe.rukamori.amabeat.innertube.models.SongItem
+import moe.rukamori.amabeat.innertube.models.YTItem
+import moe.rukamori.amabeat.innertube.pages.HomePage
 import dev.citali.amabeat.models.MediaMetadata
 import dev.citali.amabeat.models.SimilarRecommendation
 import dev.citali.amabeat.models.toMediaMetadata
@@ -596,7 +596,7 @@ fun SpeedDialSection(
                                     title = localItem.title,
                                     artists =
                                         localItem.artists.map {
-                                            moe.rukamori.archivetune.innertube.models
+                                            moe.rukamori.amabeat.innertube.models
                                                 .Artist(name = it.name, id = it.id)
                                         },
                                     thumbnail = localItem.song.thumbnailUrl.orEmpty(),
@@ -611,7 +611,7 @@ fun SpeedDialSection(
                                     title = localItem.title,
                                     artists =
                                         localItem.artists.map {
-                                            moe.rukamori.archivetune.innertube.models
+                                            moe.rukamori.amabeat.innertube.models
                                                 .Artist(name = it.name, id = it.id)
                                         },
                                     year = localItem.album.year,

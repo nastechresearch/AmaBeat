@@ -171,7 +171,7 @@ abstract class InternalDatabase : RoomDatabase() {
          *
          * Room wipes any database whose `user_version` is *higher* than this build's
          * schema version ("downgrade"), which is exactly what happens with backups
-         * from ArchiveTune (same layout, newer version number) or from a newer
+         * from AmaBeat (same layout, newer version number) or from a newer
          * AmaBeat build. When [foreign] is `true`, or the stored version is higher
          * than ours, the file is reconciled in place: columns unknown to this build
          * are dropped, missing ones are added with their defaults, and the version
@@ -421,7 +421,7 @@ private object SchemaTools {
     }
 
     /**
-     * Brings a database written by a schema-compatible fork (ArchiveTune) or by a
+     * Brings a database written by a schema-compatible fork (AmaBeat) or by a
      * newer build in line with this build's schema so Room opens it as-is instead of
      * destroying it. Runs in a single transaction: the WAL is folded into the main
      * file, tables are reconciled (extra columns such as `song.isPodcast` dropped,

@@ -1,4 +1,4 @@
-"""Posts GitHub repo events (stars, forks, issues, comments, PRs, workflow runs) to the Telegram logs topic, styled like ArchiveTune's notifier bot."""
+"""Posts GitHub repo events (stars, forks, issues, comments, PRs, workflow runs) to the Telegram logs topic, styled like AmaBeat's notifier bot."""
 
 import json
 import os

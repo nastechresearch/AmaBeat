@@ -423,7 +423,7 @@ fun LyricsV2(
         }
     }
 
-    // Auto-scroll to the active line, the way stock ArchiveTune does it: a far jump snaps
+    // Auto-scroll to the active line, the way stock AmaBeat does it: a far jump snaps
     // two lines above the target first, then one animated scroll lands the line on the
     // focus anchor. No per-frame driving — the list animation is Compose's own.
     LaunchedEffect(currentLineIndex, isManualScrolling, lyricsScroll) {

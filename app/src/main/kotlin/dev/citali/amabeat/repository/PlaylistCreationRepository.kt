@@ -17,8 +17,8 @@ import dev.citali.amabeat.constants.YtmSyncKey
 import dev.citali.amabeat.db.MusicDatabase
 import dev.citali.amabeat.db.entities.PlaylistEntity
 import dev.citali.amabeat.extensions.isInternetConnected
-import moe.rukamori.archivetune.innertube.YouTube
-import moe.rukamori.archivetune.innertube.utils.hasYouTubeLoginCookie
+import moe.rukamori.amabeat.innertube.YouTube
+import moe.rukamori.amabeat.innertube.utils.hasYouTubeLoginCookie
 import dev.citali.amabeat.utils.dataStore
 import java.time.LocalDateTime
 import javax.inject.Inject

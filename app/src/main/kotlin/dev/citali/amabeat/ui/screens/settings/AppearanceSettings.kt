@@ -200,7 +200,7 @@ fun AppearanceSettings(navController: NavController) {
             HidePlayerThumbnailKey,
             defaultValue = false,
         )
-    val (archiveTuneCanvasEnabled, onAmaBeatCanvasEnabledChange) =
+    val (amaBeatCanvasEnabled, onAmaBeatCanvasEnabledChange) =
         rememberPreference(
             AmaBeatCanvasKey,
             defaultValue = false,
@@ -413,7 +413,7 @@ fun AppearanceSettings(navController: NavController) {
 
             else -> true
         }
-    // ArchiveTune 13.4.0 Immersive kept button colors + slider style available.
+    // AmaBeat 13.4.0 Immersive kept button colors + slider style available.
     val isPlayerControlsCustomizationEnabled =
         playerDesignStyle == PlayerDesignStyle.V7_LEGACY || isPlayerBackgroundCustomizationEnabled
     val isVolumeBarSupported =
@@ -902,7 +902,7 @@ fun AppearanceSettings(navController: NavController) {
                         title = { Text(stringResource(R.string.amabeat_canvas)) },
                         description = stringResource(R.string.amabeat_canvas_desc),
                         icon = { Icon(painterResource(R.drawable.motion_photos_on), null) },
-                        checked = archiveTuneCanvasEnabled,
+                        checked = amaBeatCanvasEnabled,
                         onCheckedChange = onAmaBeatCanvasEnabledChange,
                     )
                 }

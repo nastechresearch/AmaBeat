@@ -8,7 +8,7 @@
 package dev.citali.amabeat.models
 
 import dev.citali.amabeat.db.entities.LocalItem
-import moe.rukamori.archivetune.innertube.models.YTItem
+import moe.rukamori.amabeat.innertube.models.YTItem
 
 data class SimilarRecommendation(
     val title: LocalItem,

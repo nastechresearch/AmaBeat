@@ -8,7 +8,7 @@
 package dev.citali.amabeat.ui.menu
 
 import dev.citali.amabeat.db.entities.PlaylistSongMap
-import moe.rukamori.archivetune.innertube.YouTube
+import moe.rukamori.amabeat.innertube.YouTube
 
 suspend fun removeSongFromRemotePlaylist(
     playlistBrowseId: String,

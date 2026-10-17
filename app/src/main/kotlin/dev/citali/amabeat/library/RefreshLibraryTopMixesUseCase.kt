@@ -25,8 +25,8 @@ import dev.citali.amabeat.constants.AiProviderKey
 import dev.citali.amabeat.constants.AiSelectedModelKey
 import dev.citali.amabeat.db.entities.Song
 import dev.citali.amabeat.extensions.toEnum
-import moe.rukamori.archivetune.innertube.YouTube
-import moe.rukamori.archivetune.innertube.models.SongItem
+import moe.rukamori.amabeat.innertube.YouTube
+import moe.rukamori.amabeat.innertube.models.SongItem
 import dev.citali.amabeat.models.MediaMetadata
 import dev.citali.amabeat.models.toMediaMetadata
 import dev.citali.amabeat.repository.LibraryTopMixRepository
@@ -334,7 +334,7 @@ private fun String.matchesComparableTitle(other: String): Boolean {
         (self == target || (self.length > 3 && target.contains(self)) || (target.length > 3 && self.contains(target)))
 }
 
-private fun List<moe.rukamori.archivetune.innertube.models.Artist>.matchesAnyLocalArtist(song: Song): Boolean {
+private fun List<moe.rukamori.amabeat.innertube.models.Artist>.matchesAnyLocalArtist(song: Song): Boolean {
     val remoteArtists = map { it.name.normalizedForMixMatch() }.filter { it.isNotBlank() }
     val localArtists = song.artists.map { it.name.normalizedForMixMatch() }.filter { it.isNotBlank() }
     if (remoteArtists.isEmpty() || localArtists.isEmpty()) return false

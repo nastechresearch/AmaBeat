@@ -10,21 +10,21 @@ package dev.citali.amabeat.innertube
 import io.ktor.client.call.body
 import dev.citali.amabeat.constants.HideExplicitKey
 import dev.citali.amabeat.utils.PreferenceStore
-import moe.rukamori.archivetune.innertube.InnerTube
-import moe.rukamori.archivetune.innertube.YouTube
-import moe.rukamori.archivetune.innertube.models.AlbumItem
-import moe.rukamori.archivetune.innertube.models.Artist
-import moe.rukamori.archivetune.innertube.models.ArtistItem
-import moe.rukamori.archivetune.innertube.models.MusicResponsiveListItemRenderer
-import moe.rukamori.archivetune.innertube.models.MusicTwoRowItemRenderer
-import moe.rukamori.archivetune.innertube.models.PlaylistItem
-import moe.rukamori.archivetune.innertube.models.SongItem
-import moe.rukamori.archivetune.innertube.models.YTItem
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.WEB_REMIX
-import moe.rukamori.archivetune.innertube.models.getContinuation
-import moe.rukamori.archivetune.innertube.models.oddElements
-import moe.rukamori.archivetune.innertube.models.response.BrowseResponse
-import moe.rukamori.archivetune.innertube.pages.ChartsPage
+import moe.rukamori.amabeat.innertube.InnerTube
+import moe.rukamori.amabeat.innertube.YouTube
+import moe.rukamori.amabeat.innertube.models.AlbumItem
+import moe.rukamori.amabeat.innertube.models.Artist
+import moe.rukamori.amabeat.innertube.models.ArtistItem
+import moe.rukamori.amabeat.innertube.models.MusicResponsiveListItemRenderer
+import moe.rukamori.amabeat.innertube.models.MusicTwoRowItemRenderer
+import moe.rukamori.amabeat.innertube.models.PlaylistItem
+import moe.rukamori.amabeat.innertube.models.SongItem
+import moe.rukamori.amabeat.innertube.models.YTItem
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.WEB_REMIX
+import moe.rukamori.amabeat.innertube.models.getContinuation
+import moe.rukamori.amabeat.innertube.models.oddElements
+import moe.rukamori.amabeat.innertube.models.response.BrowseResponse
+import moe.rukamori.amabeat.innertube.pages.ChartsPage
 
 /**
  * Standalone charts fetcher living in the app module.

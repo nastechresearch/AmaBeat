@@ -9,7 +9,7 @@ package dev.citali.amabeat.lyrics
 
 import android.content.Context
 import dev.citali.amabeat.constants.EnableLrcLibKey
-import moe.rukamori.archivetune.lrclib.LrcLib
+import moe.rukamori.amabeat.lrclib.LrcLib
 import dev.citali.amabeat.utils.dataStore
 import dev.citali.amabeat.utils.get
 

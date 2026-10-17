@@ -24,7 +24,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import dev.citali.amabeat.BuildConfig
 import dev.citali.amabeat.R
-import moe.rukamori.archivetune.innertube.NetworkGatekeeper
+import moe.rukamori.amabeat.innertube.NetworkGatekeeper
 import org.json.JSONObject
 import timber.log.Timber
 import java.io.IOException

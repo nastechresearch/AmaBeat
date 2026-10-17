@@ -57,8 +57,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import dev.citali.amabeat.LocalPlayerAwareWindowInsets
 import dev.citali.amabeat.R
-import moe.rukamori.archivetune.innertube.YouTube
-import moe.rukamori.archivetune.innertube.models.BrowseEndpoint
+import moe.rukamori.amabeat.innertube.YouTube
+import moe.rukamori.amabeat.innertube.models.BrowseEndpoint
 import dev.citali.amabeat.ui.component.NavigationTitle
 import dev.citali.amabeat.ui.component.shimmer.ShimmerHost
 import dev.citali.amabeat.ui.component.shimmer.TextPlaceholder

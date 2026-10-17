@@ -8,7 +8,7 @@
 package dev.citali.amabeat.lyrics
 
 import android.content.Context
-import moe.rukamori.archivetune.innertube.YouTube
+import moe.rukamori.amabeat.innertube.YouTube
 
 object YouTubeSubtitleLyricsProvider : LyricsProvider {
     override val name = "YouTube Subtitle"

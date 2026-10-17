@@ -83,7 +83,7 @@ import dev.citali.amabeat.LocalPlayerAwareWindowInsets
 import dev.citali.amabeat.LocalPlayerConnection
 import dev.citali.amabeat.R
 import dev.citali.amabeat.constants.GridThumbnailHeight
-import moe.rukamori.archivetune.innertube.models.AlbumItem
+import moe.rukamori.amabeat.innertube.models.AlbumItem
 import dev.citali.amabeat.ui.component.IconButton
 import dev.citali.amabeat.ui.component.LocalMenuState
 import dev.citali.amabeat.ui.component.YouTubeGridItem

@@ -10,7 +10,7 @@ package dev.citali.amabeat.lyrics
 import android.content.Context
 import android.util.Log
 import dev.citali.amabeat.constants.EnableUnisonLyricsKey
-import moe.rukamori.archivetune.unison.Unison
+import moe.rukamori.amabeat.unison.Unison
 import dev.citali.amabeat.utils.GlobalLog
 import dev.citali.amabeat.utils.dataStore
 import dev.citali.amabeat.utils.get

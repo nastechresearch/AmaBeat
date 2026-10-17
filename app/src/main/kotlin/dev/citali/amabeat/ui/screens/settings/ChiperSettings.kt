@@ -71,7 +71,7 @@ import androidx.navigation.NavController
 import dev.citali.amabeat.LocalAnimationsDisabled
 import dev.citali.amabeat.LocalPlayerAwareWindowInsets
 import dev.citali.amabeat.R
-import moe.rukamori.archivetune.morideobfuscator.CipherRuntimeStatus
+import moe.rukamori.amabeat.morideobfuscator.CipherRuntimeStatus
 import dev.citali.amabeat.ui.component.IconButton
 import dev.citali.amabeat.ui.component.PreferenceEntry
 import dev.citali.amabeat.ui.component.PreferenceGroup

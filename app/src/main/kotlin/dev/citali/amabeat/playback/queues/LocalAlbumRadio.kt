@@ -12,8 +12,8 @@ import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.withContext
 import dev.citali.amabeat.db.entities.AlbumWithSongs
 import dev.citali.amabeat.extensions.toMediaItem
-import moe.rukamori.archivetune.innertube.YouTube
-import moe.rukamori.archivetune.innertube.models.WatchEndpoint
+import moe.rukamori.amabeat.innertube.YouTube
+import moe.rukamori.amabeat.innertube.models.WatchEndpoint
 import dev.citali.amabeat.models.MediaMetadata
 
 class LocalAlbumRadio(

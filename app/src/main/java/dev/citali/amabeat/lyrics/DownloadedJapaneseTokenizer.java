@@ -4,7 +4,7 @@
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 and Section 5
  *
- * Resource-resolver adapter pattern based on ArchiveTune's
+ * Resource-resolver adapter pattern based on AmaBeat's
  * DownloadedJapaneseTokenizer (GPL-3.0), with Kuromoji's IPADIC API (Apache-2.0).
  */
 

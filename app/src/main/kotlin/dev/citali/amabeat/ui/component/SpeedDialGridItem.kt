@@ -43,8 +43,8 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import dev.citali.amabeat.R
-import moe.rukamori.archivetune.innertube.models.SongItem
-import moe.rukamori.archivetune.innertube.models.YTItem
+import moe.rukamori.amabeat.innertube.models.SongItem
+import moe.rukamori.amabeat.innertube.models.YTItem
 import dev.citali.amabeat.ui.utils.YtimgResizePolicy
 import dev.citali.amabeat.ui.utils.resize
 

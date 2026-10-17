@@ -7,14 +7,14 @@
 
 package dev.citali.amabeat.utils
 
-import moe.rukamori.archivetune.innertube.models.YouTubeClient
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.ORIGIN_YOUTUBE
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.ORIGIN_YOUTUBE_MOBILE
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.ORIGIN_YOUTUBE_MUSIC
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.REFERER_YOUTUBE
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.REFERER_YOUTUBE_MOBILE
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.REFERER_YOUTUBE_MUSIC
-import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.REFERER_YOUTUBE_TV
+import moe.rukamori.amabeat.innertube.models.YouTubeClient
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.ORIGIN_YOUTUBE
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.ORIGIN_YOUTUBE_MOBILE
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.ORIGIN_YOUTUBE_MUSIC
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.REFERER_YOUTUBE
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.REFERER_YOUTUBE_MOBILE
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.REFERER_YOUTUBE_MUSIC
+import moe.rukamori.amabeat.innertube.models.YouTubeClient.Companion.REFERER_YOUTUBE_TV
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Request

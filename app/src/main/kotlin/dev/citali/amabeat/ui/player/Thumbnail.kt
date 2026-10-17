@@ -144,7 +144,7 @@ fun Thumbnail(
     val (enableHapticFeedback) = rememberPreference(EnableHapticFeedbackKey, true)
 
     val hidePlayerThumbnail by rememberPreference(HidePlayerThumbnailKey, false)
-    val archiveTuneCanvasEnabled by rememberPreference(AmaBeatCanvasKey, false)
+    val amaBeatCanvasEnabled by rememberPreference(AmaBeatCanvasKey, false)
     val lowDataModeActive = rememberLowDataModeActive()
     val settingsPlayerDesignStyle by rememberEnumPreference(
         key = PlayerDesignStyleKey,
@@ -399,7 +399,7 @@ fun Thumbnail(
                                 if (country.length == 2) country.lowercase(Locale.ROOT) else "us"
                             }
                         val shouldUseCanvas =
-                            archiveTuneCanvasEnabled &&
+                            amaBeatCanvasEnabled &&
                                 playerDesignStyle != PlayerDesignStyle.V7 &&
                                 (playerDesignStyle != PlayerDesignStyle.V8 && playerDesignStyle != PlayerDesignStyle.V10) &&
                                 item.mediaId.isNotBlank() &&

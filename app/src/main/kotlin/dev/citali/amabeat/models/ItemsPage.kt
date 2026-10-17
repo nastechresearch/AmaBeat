@@ -7,7 +7,7 @@
 
 package dev.citali.amabeat.models
 
-import moe.rukamori.archivetune.innertube.models.YTItem
+import moe.rukamori.amabeat.innertube.models.YTItem
 
 data class ItemsPage(
     val items: List<YTItem>,

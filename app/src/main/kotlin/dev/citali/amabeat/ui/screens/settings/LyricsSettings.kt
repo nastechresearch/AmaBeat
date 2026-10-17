@@ -100,8 +100,8 @@ import dev.citali.amabeat.constants.PreferredLyricsProvider
 import dev.citali.amabeat.constants.PreloadQueueLyricsEnabledKey
 import dev.citali.amabeat.constants.QueueLyricsPreloadCountKey
 import dev.citali.amabeat.constants.deserializeLyricsProviderOrder
-import moe.rukamori.archivetune.paxsenix.models.PaxsenixStats
-import moe.rukamori.archivetune.paxsenix.models.ProviderStats
+import moe.rukamori.amabeat.paxsenix.models.PaxsenixStats
+import moe.rukamori.amabeat.paxsenix.models.ProviderStats
 import dev.citali.amabeat.ui.component.ActionPromptDialog
 import dev.citali.amabeat.ui.component.DefaultDialog
 import dev.citali.amabeat.ui.component.EnumListPreference

@@ -100,8 +100,8 @@ import dev.citali.amabeat.db.entities.PlaylistSongMap
 import dev.citali.amabeat.extensions.metadata
 import dev.citali.amabeat.extensions.toMediaItem
 import dev.citali.amabeat.extensions.togglePlayPause
-import moe.rukamori.archivetune.innertube.models.SongItem
-import moe.rukamori.archivetune.innertube.models.WatchEndpoint
+import moe.rukamori.amabeat.innertube.models.SongItem
+import moe.rukamori.amabeat.innertube.models.WatchEndpoint
 import dev.citali.amabeat.models.toMediaMetadata
 import dev.citali.amabeat.playback.queues.YouTubeQueue
 import dev.citali.amabeat.ui.component.DraggableScrollbar

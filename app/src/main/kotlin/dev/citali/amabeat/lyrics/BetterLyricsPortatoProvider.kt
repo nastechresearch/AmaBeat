@@ -8,7 +8,7 @@
 package dev.citali.amabeat.lyrics
 
 import android.content.Context
-import moe.rukamori.archivetune.betterlyrics.BetterLyrics
+import moe.rukamori.amabeat.betterlyrics.BetterLyrics
 import dev.citali.amabeat.constants.EnableBetterLyricsPortatoKey
 import dev.citali.amabeat.utils.dataStore
 import dev.citali.amabeat.utils.get

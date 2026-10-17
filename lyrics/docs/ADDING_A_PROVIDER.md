@@ -13,7 +13,7 @@ Each provider lives in its own Gradle submodule under the `lyrics/` directory. P
 ```
 lyrics/yourprovider/
 ├── build.gradle.kts
-└── src/main/kotlin/moe/rukamori/archivetune/yourprovider/
+└── src/main/kotlin/moe/rukamori/amabeat/yourprovider/
     └── YourProvider.kt
 ```
 
@@ -52,12 +52,12 @@ Add your module to **two** files:
 include(":yourprovider")
 ```
 
-**`../settings.gradle.kts`** (in the main ArchiveTune repo, on the `feat/lyrics-submodule` branch):
+**`../settings.gradle.kts`** (in the main AmaBeat repo, on the `feat/lyrics-submodule` branch):
 ```kotlin
 include(":lyrics:yourprovider")
 ```
 
-**`../app/build.gradle.kts`** (in the main ArchiveTune repo):
+**`../app/build.gradle.kts`** (in the main AmaBeat repo):
 ```kotlin
 implementation(project(":lyrics:yourprovider"))
 ```
@@ -69,7 +69,7 @@ Create a singleton object that exposes `getLyrics()` and optionally `getAllLyric
 **Simple pattern** (one endpoint, returns lyrics as string):
 
 ```kotlin
-package moe.rukamori.archivetune.yourprovider
+package moe.rukamori.amabeat.yourprovider
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -127,14 +127,14 @@ data class LyricsResponse(
 Once the module is registered, create a provider wrapper in the app module at:
 
 ```
-app/src/main/kotlin/moe/rukamori/archivetune/lyrics/YourProvider.kt
+app/src/main/kotlin/moe/rukamori/amabeat/lyrics/YourProvider.kt
 ```
 
 ```kotlin
-package moe.rukamori.archivetune.lyrics
+package moe.rukamori.amabeat.lyrics
 
 import android.content.Context
-import moe.rukamori.archivetune.yourprovider.YourProvider
+import moe.rukamori.amabeat.yourprovider.YourProvider
 
 object YourProvider : LyricsProvider {
     override val name = "Your Provider"
@@ -179,7 +179,7 @@ private val baseProviders =
 Use `@Serializable` data classes for your response models. Place them in a `models/` subdirectory if you have more than one:
 
 ```
-lyrics/yourprovider/src/main/kotlin/moe/rukamori/archivetune/yourprovider/
+lyrics/yourprovider/src/main/kotlin/moe/rukamori/amabeat/yourprovider/
 ├── YourProvider.kt
 └── models/
     ├── SearchResponse.kt
@@ -205,7 +205,7 @@ Add unit tests under `src/test/kotlin/`. Run them with:
 | Use `object` singleton (not `class`) | Stateless, no injection needed |
 | Return `Result<String>` from `getLyrics()` | Consistent error handling across providers |
 | Name the file after the provider | e.g. `KuGou.kt`, `LrcLib.kt` |
-| Package format: `moe.rukamori.archivetune.<name>` | Matches existing convention |
+| Package format: `moe.rukamori.amabeat.<name>` | Matches existing convention |
 | Timeout at 15s for requests | Prevents hanging in the lyrics pipeline |
 | No Android imports | These are JVM libraries |
 
@@ -214,4 +214,4 @@ Add unit tests under `src/test/kotlin/`. Run them with:
 1. Commit your changes to a feature branch on your fork
 2. Open a pull request using the PR template
 3. The PR will be reviewed and, if accepted, merged into `main`
-4. Once merged, the main ArchiveTune repo's submodule reference will be updated
+4. Once merged, the main AmaBeat repo's submodule reference will be updated
