@@ -172,16 +172,7 @@ Interested in building the project or contributing? AmaBeat is built on a high-p
 
 ### Open-Source Acknowledgments
 
-AmaBeat is made possible by the work of many open-source projects and communities:
-- **ArchiveTune** by [Rukamori](https://github.com/rukamori/ArchiveTune) for base framework.
-- **Vivi Music** by [vivizzz007](https://github.com/vivizzz007/vivi-music) for Dolby and Dirac equalizer presets
-- **Metrolist** by [Mostafa Alagamy](https://github.com/mostafaalagamy/Metrolist) for Playback client fallback order.
-- **SimpMusic** by [maxrave-dev](https://github.com/maxrave-dev/SimpMusic) for the lyrics API provider.
-- **Monochrome** by [monochrome-music](https://github.com/monochrome-music/monochrome) for the lossless FLAC streaming source.
-- [BetterLyrics](https://better-lyrics.boidu.dev/) for word-by-word lyrics, unison and artwork provider support.
-- [Material Color Utilities](https://github.com/material-foundation/material-color-utilities)
-- [Read You](https://github.com/Ashinch/ReadYou) and [Seal](https://github.com/JunkFood02/Seal) for UI component inspiration.
-- Translators, beta testers, contributors, and community members who continue to support the project.
+AmaBeat includes open-source components and libraries. Their applicable license and copyright notices remain in the relevant source and license files.
 
 ---
 
@@ -201,7 +192,7 @@ AmaBeat is licensed under the **GNU General Public License v3.0 (GPLv3)**.
 
 You may copy, modify, and redistribute the source code, including commercially, provided that you comply with the GPLv3. This includes preserving applicable copyright and license notices, clearly identifying modified versions, and providing the corresponding source code when required.
 
-Copyright © nastechresearch and the AmaBeat contributors for their respective original contributions.
+Copyright © nastechresearch for AmaBeat's original contributions. Third-party notices remain with the applicable source and license files.
 
 The **AmaBeat™** name, logo, application icon, and official branding are not licensed under the GPLv3. Unofficial forks must not present themselves as official AmaBeat releases or imply endorsement by the AmaBeat maintainers.
 
