@@ -386,14 +386,8 @@ fun LyricsMenu(
 
     val configuration = LocalConfiguration.current
     val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
-    val defaultLanguageCode =
-        remember(configuration) {
-            configuration.locales
-                .get(0)
-                .getDisplayLanguage(Locale.ENGLISH)
-                .uppercase(Locale.US)
-                .replace(' ', '_')
-        }
+    // AmaBeat prioritizes African languages for lyric translation; Luganda is the default.
+    val defaultLanguageCode = "LUGANDA"
     val (targetLanguage, setTargetLanguage) = rememberPreference(TranslatorTargetLangKey, defaultLanguageCode)
     val isTranslationInProgress = isStandardTranslating || isAiTranslating
 

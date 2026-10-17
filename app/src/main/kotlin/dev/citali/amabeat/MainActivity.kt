@@ -1983,7 +1983,7 @@ class MainActivity : FragmentActivity() {
                                                 title = {
                                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                                         // app icon
-                                                        Icon(
+                                                        Image(
                                                             painter = painterResource(R.drawable.about_appbar),
                                                             contentDescription = null,
                                                             modifier =
@@ -3678,4 +3678,3 @@ private fun Context.isTvDevice(): Boolean {
         packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK) ||
         packageManager.hasSystemFeature(PackageManager.FEATURE_TELEVISION)
 }
-

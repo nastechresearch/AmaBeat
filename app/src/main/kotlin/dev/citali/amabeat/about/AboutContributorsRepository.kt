@@ -169,7 +169,9 @@ class AboutContributorsRepository
                         type.equals("Bot", ignoreCase = true) ||
                             login.lowercase().endsWith("[bot]")
 
-                    if (!isBot && login.isNotBlank() && avatarUrl.isNotBlank()) {
+                    if (!isBot &&
+                        login.equals(GitHubOwner, ignoreCase = true) &&
+                        avatarUrl.isNotBlank()) {
                         contributors.add(
                             AboutContributor(
                                 login = login,

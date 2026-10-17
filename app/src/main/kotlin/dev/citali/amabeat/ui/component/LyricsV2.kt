@@ -379,8 +379,9 @@ fun LyricsV2(
 
     LaunchedEffect(entriesWithWords, isSynced, leadMs, lyricsSyncOffset, appleMusicPlayerMode, hasRomanizedWordTimedLyrics) {
         if (!isSynced || entriesWithWords.isEmpty()) return@LaunchedEffect
-        val pollIntervalMs =
-            if (isTtmlFormat || (appleMusicPlayerMode && hasRomanizedWordTimedLyrics)) 16L else 50L
+        // Sample at frame cadence so line changes and karaoke fills do not wait an
+        // extra 50 ms after the player's actual position crosses a timestamp.
+        val pollIntervalMs = 16L
         while (isActive) {
             val sliderPos = sliderPositionProvider()
             val pos = sliderPos ?: player.currentPosition

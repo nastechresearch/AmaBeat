@@ -7886,11 +7886,17 @@ class MusicService :
         }
 
         val lowDataModeActive = isLowDataModeActive()
+        val authFingerprint = YouTube.currentPlaybackAuthState().fingerprint
 
-        // Lossless must be attempted before reusing an in-memory YouTube URL. Nearly every
-        // previously played song has an entry in playbackUrlCache; checking that cache first
-        // silently locked those songs to Opus/AAC even after Monochrome was enabled.
-        if (!lowDataModeActive && monochromeEnabled) {
+        // A valid stream URL is the fastest path for repeated playback. Do not make a cached
+        // song wait for the optional lossless connector to search its remote instance again.
+        // Lossless remains the first choice only when there is no usable cached URL.
+        val hasUsableCachedPlaybackUrl =
+            playbackUrlCache[mediaId]?.isValidFor(
+                authFingerprint = authFingerprint,
+                minimumRemainingMs = YTPlayerUtils.STREAM_URL_EXPIRY_SAFETY_MS,
+            ) == true
+        if (!lowDataModeActive && monochromeEnabled && !hasUsableCachedPlaybackUrl) {
             resolveLosslessDataSpec(
                 dataSpec = dataSpec,
                 mediaId = mediaId,
@@ -7900,7 +7906,6 @@ class MusicService :
             }
         }
 
-        val authFingerprint = YouTube.currentPlaybackAuthState().fingerprint
         playbackUrlCache[mediaId]
             ?.takeUnless { lowDataModeActive }
             ?.takeIf {
@@ -8075,9 +8080,9 @@ class MusicService :
             }
         val resolved =
             runBlocking(Dispatchers.IO) {
-                // Search can require a retry when the public instance is behind Cloudflare.
-                // Three seconds routinely expired before a valid match could be returned.
-                withTimeoutOrNull(10_000L) {
+                // This is an optional connector. Never hold the primary playback path for a
+                // long remote search; regular YouTube resolution is the reliable fallback.
+                withTimeoutOrNull(3_000L) {
                     MonochromeStreamResolver.resolve(
                         songId = mediaId,
                         title = song.song.title,
