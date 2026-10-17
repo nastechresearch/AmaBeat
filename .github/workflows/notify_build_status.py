@@ -29,7 +29,7 @@ def main():
     }.get(conclusion, conclusion)
 
     lines = [
-        f"Build APKs {status_label} on `{escape_markdown_v2(branch)}` by {escape_markdown_v2(actor)}",
+        f"Build APKs {status_label} on `{escape_markdown_v2(branch)}`",
         f"Commit: `{escape_markdown_v2(short_sha)}`",
     ]
     if run_url:

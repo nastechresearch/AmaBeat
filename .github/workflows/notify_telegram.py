@@ -22,10 +22,10 @@ def main():
     chat_id = os.environ['CHAT_ID']
     topic_id = os.environ.get('TOPIC_ID') or os.environ.get('LOGS_TOPIC_ID')
 
-    commit_author, commit_message, commit_hash, commit_hash_short = get_git_commit_info()
+    _, commit_message, commit_hash, commit_hash_short = get_git_commit_info()
 
     message = (
-        f"A new [commit](https://github.com/nastechresearch/AmaBeat/commit/{commit_hash}) has been merged to the repository by *{commit_author}*.\n\n"
+        f"A new [commit](https://github.com/nastechresearch/AmaBeat/commit/{commit_hash}) has been merged to the repository.\n\n"
         f"*What has changed:*\n>{escape_parentheses(commit_message)}\n\n"
         f"I'm currently building it and will send you the APKs here within ~9 mins if the build is successful.\n\n#{commit_hash_short}"
     )

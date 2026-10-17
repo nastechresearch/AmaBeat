@@ -116,7 +116,6 @@ async def send_files(file_paths):
     topic_id = os.getenv("TOPIC_ID") or os.getenv("ARTIFACTS_TOPIC_ID")
 
     message = (
-        f"**Commit by:** {commit_author}\n"
         f"**Commit message:** {commit_message}\n"
         f"**Commit hash:** #{commit_hash_short}\n"
         f"**Device:** {', '.join(device_names)}\n"
