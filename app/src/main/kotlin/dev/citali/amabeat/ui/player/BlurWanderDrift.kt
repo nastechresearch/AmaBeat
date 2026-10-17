@@ -3,12 +3,6 @@
  * © nastechresearch — github.com/nastechresearch
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
- *
- * The random-walk drift and the footprint maths below are adapted from
- * 4nx3b/AmaBeat (GPL-3.0, © Rukamori and contributors — github.com/4nx3b/AmaBeat),
- * which solved the two problems this file exists for: a periodic path turns
- * around at full speed, and a rotating rectangle only covers its inscribed
- * circle. Kept under GPL-3.0 with the original notices intact.
  */
 
 package dev.citali.amabeat.ui.player
