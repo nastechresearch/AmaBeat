@@ -1,49 +1,49 @@
 [
   {
     "Id": "28992",
-    "Name": "Flora",
+    "Name": "AmaBeat Pulse",
     "Author": "nastechresearch",
-    "Source": "Flora.svg",
+    "Source": "AmaBeat_Pulse.svg",
     "Link": "https://github.com/nastechresearch/AmaBeat/tree/main/IconPack",
     "GitHubAuthorUrl": "https://github.com/nastechresearch"
   },
   {
     "Id": "29926",
-    "Name": "Panda",
+    "Name": "AmaBeat Aurora",
     "Author": "nastechresearch",
-    "Source": "Panda.svg",
+    "Source": "AmaBeat_Aurora.svg",
     "Link": "https://github.com/nastechresearch/AmaBeat/tree/main/IconPack",
     "GitHubAuthorUrl": "https://github.com/nastechresearch"
   },
   {
     "Id": "38927",
-    "Name": "Hatsune Miku",
+    "Name": "AmaBeat Neon",
     "Author": "nastechresearch",
-    "Source": "Hatsune_Miku.svg",
+    "Source": "AmaBeat_Neon.svg",
     "Link": "https://github.com/nastechresearch/AmaBeat/tree/main/IconPack",
     "GitHubAuthorUrl": "https://github.com/nastechresearch"
   },
   {
     "Id": "29030",
-    "Name": "Keqing",
+    "Name": "AmaBeat Sunset",
     "Author": "nastechresearch",
-    "Source": "Keqing.svg",
+    "Source": "AmaBeat_Sunset.svg",
     "Link": "https://github.com/nastechresearch/AmaBeat/tree/main/IconPack",
     "GitHubAuthorUrl": "https://github.com/nastechresearch"
   },
   {
     "Id": "82962",
-    "Name": "My Neighbour Totoro",
+    "Name": "AmaBeat Ocean",
     "Author": "nastechresearch",
-    "Source": "My_Neighbour_Totoro.svg",
+    "Source": "AmaBeat_Ocean.svg",
     "Link": "https://github.com/nastechresearch/AmaBeat/tree/main/IconPack",
     "GitHubAuthorUrl": "https://github.com/nastechresearch"
   },
   {
     "Id": "38962",
-    "Name": "Monochrome",
+    "Name": "AmaBeat Mono",
     "Author": "nastechresearch",
-    "Source": "Monochrome.svg",
+    "Source": "AmaBeat_Mono.svg",
     "Link": "https://github.com/nastechresearch/AmaBeat/tree/main/IconPack",
     "GitHubAuthorUrl": "https://github.com/nastechresearch"
   }

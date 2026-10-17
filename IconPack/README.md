@@ -13,7 +13,7 @@
 
 ## 📖 About
 
-**AmaBeat Community Icon Pack** is an open, community-driven collection of custom icons designed for AmaBeat. Every icon in this pack is crafted by a talented member of the community — each one unique, expressive, and made with care.
+**AmaBeat Community Icon Pack** is an open collection of custom icons designed for AmaBeat. The current pack is maintained and owned by **nastechresearch**; each style is an original AmaBeat treatment of the official mark. Community contributions remain welcome.
 
 Whether you're looking for a sleek aesthetic, a festive vibe, or a bold neon style, there's something here for everyone. Have your own design? **Contributions are welcome!**
 
@@ -77,7 +77,7 @@ community redistribution.
 
 ## 📄 License
 
-All icons in this pack are contributed by community members. Rights belong to their respective authors. By submitting an icon, you grant the AmaBeat community permission to use and distribute it as part of this pack.
+The current AmaBeat-owned icon variants are provided by **nastechresearch** for use with AmaBeat. Future community submissions remain the property of their respective authors and must be original or properly licensed for redistribution.
 
 ---
 
