@@ -317,9 +317,19 @@ jobs:
           set -euo pipefail
           RELEASE_DIR="${{ steps.release_dir.outputs.release_dir }}"
           mkdir -p "$RELEASE_DIR/out"
-          APK=$(find "$RELEASE_DIR" -type f \
-            \( -name "*-signed.apk" -o -name "*-unsigned.apk" -o -name "*.apk" \) \
-            ! -path "$RELEASE_DIR/out/*" | head -n 1)
+          if [ "$HAS_ANDROID_SIGNING" = "true" ]; then
+            APK=$(find "$RELEASE_DIR" -type f -name "*-signed.apk" \
+              ! -path "$RELEASE_DIR/out/*" | head -n 1)
+            if [ -z "${APK:-}" ]; then
+              echo "Signing was enabled but no signed APK was produced"
+              find "$RELEASE_DIR" -maxdepth 2 -type f -name "*.apk" -print || true
+              exit 1
+            fi
+          else
+            APK=$(find "$RELEASE_DIR" -type f \
+              \( -name "*-unsigned.apk" -o -name "*.apk" \) \
+              ! -name "*-signed.apk" ! -path "$RELEASE_DIR/out/*" | head -n 1)
+          fi
           if [ -z "${APK:-}" ]; then
             echo "No APK found in $RELEASE_DIR after build/sign step"
             find "$RELEASE_DIR" -maxdepth 2 -type f -print || true
